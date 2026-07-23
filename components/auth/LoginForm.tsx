@@ -10,6 +10,7 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const safeCallbackUrl = callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "/";
   
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,10 +35,10 @@ export default function LoginForm() {
         setError("Špatný e-mail nebo heslo.");
         setIsLoading(false);
       } else {
-        router.push(callbackUrl);
+        router.push(safeCallbackUrl);
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError("Něco se pokazilo. Zkuste to znovu.");
       setIsLoading(false);
     }

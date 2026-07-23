@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { User, Map, Heart, List, Search, LogOut, Loader2 } from "lucide-react";
@@ -24,12 +24,34 @@ export default function TopNavigation({
   const [isTodayOnly, setIsTodayOnly] = useState(currentToday);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isProfileMenuOpen]);
 
   // Synchronizace lokálního stavu s URL (např. při použití tlačítka Zpět v prohlížeči)
   useEffect(() => {
-    setSearchTerm(currentSearch);
-    setIsTodayOnly(currentToday);
-  }, [currentSearch, currentToday]);
+    if (searchTerm === currentSearch && isTodayOnly === currentToday) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setSearchTerm(currentSearch);
+      setIsTodayOnly(currentToday);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [currentSearch, currentToday, searchTerm, isTodayOnly]);
 
   // Zápis do URL při změně lokálního stavu uživatelem
   useEffect(() => {
@@ -60,7 +82,7 @@ export default function TopNavigation({
   }, [searchTerm, isTodayOnly, currentSearch, currentToday, pathname, router, searchParams]);
 
   const handleTabClick = (tab: string) => {
-    if (tab === "oblibene" && !session) {
+    if (tab === "favourites" && !session) {
       signIn();
       return;
     }
@@ -84,9 +106,9 @@ export default function TopNavigation({
       <div className="flex flex-col items-center gap-2 order-3 w-full md:w-auto md:order-2 shrink-0">
         <div className="flex items-center bg-neutral-800/60 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-2xl justify-center w-full md:w-auto">
         <button
-          onClick={() => handleTabClick("mapa")}
+          onClick={() => handleTabClick("map")}
           className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
-            activeTab === "mapa"
+            activeTab === "map"
               ? "bg-neutral-700/80 text-white shadow-sm"
               : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
           }`}
@@ -95,9 +117,9 @@ export default function TopNavigation({
           <span className="hidden sm:inline">Mapa</span>
         </button>
         <button
-          onClick={() => handleTabClick("oblibene")}
+          onClick={() => handleTabClick("favourites")}
           className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
-            activeTab === "oblibene"
+            activeTab === "favourites"
               ? "bg-neutral-700/80 text-white shadow-sm"
               : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
           }`}
@@ -161,7 +183,7 @@ export default function TopNavigation({
       </div>
 
       {/* Ikonka uživatele úplně vpravo */}
-      <div className="flex items-center gap-3 order-2 md:order-3 flex-1 justify-end relative">
+      <div ref={profileMenuRef} className="flex items-center gap-3 order-2 md:order-3 flex-1 justify-end relative">
 
         <button 
           onClick={() => session ? setIsProfileMenuOpen(!isProfileMenuOpen) : signIn()}

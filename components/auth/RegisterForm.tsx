@@ -49,7 +49,7 @@ export default function RegisterForm() {
           router.refresh();
         }
       }
-    } catch (err) {
+    } catch {
       setError("Něco se pokazilo. Zkuste to znovu.");
       setIsLoading(false);
     }

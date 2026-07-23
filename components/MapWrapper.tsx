@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from 'next/dynamic';
+import type { Restaurant } from '@/lib/types';
 
 // V Next.js 15+ se ssr: false pro next/dynamic smí použít pouze uvnitř Client Componenty
 const DynamicMap = dynamic(() => import('./Map'), { 
@@ -17,12 +18,9 @@ export default function MapWrapper({
   selectedRestaurant,
   onRestaurantClick
 }: { 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  restaurants?: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  selectedRestaurant?: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onRestaurantClick?: (restaurant: any) => void
+  restaurants?: Restaurant[],
+  selectedRestaurant?: Restaurant | null,
+  onRestaurantClick?: (restaurant: Restaurant) => void
 }) {
   return (
     <DynamicMap 
