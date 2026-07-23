@@ -68,7 +68,7 @@ export default function TopNavigation() {
 
       {/* Ikonka uživatele úplně vpravo */}
       <button 
-        onClick={() => session ? signOut() : signIn()}
+        onClick={() => session ? (window.confirm('Přejete si odhlásit se?') && signOut()) : signIn()}
         title={session ? `Odhlásit se (${session.user?.name})` : "Přihlásit se"}
         className={`w-11 h-11 rounded-full bg-neutral-800/60 backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-xl order-2 md:order-3 ${
           session 
