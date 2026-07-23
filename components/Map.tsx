@@ -31,16 +31,32 @@ function MapResizer() {
 
 export default function Map({ 
   restaurants = [], 
+  selectedRestaurant,
   onRestaurantClick 
 }: { 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   restaurants?: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  selectedRestaurant?: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onRestaurantClick?: (restaurant: any) => void
 }) {
   useEffect(() => {
     fixLeafletIcon();
   }, []);
+
+  const customPingIcon = new L.Icon({
+    iconUrl: '/ping.png',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20], // Předpokládáme středovou kotvu pro kruhový/ping ikon
+  });
+
+  const currentPingIcon = new L.Icon({
+    iconUrl: '/current_ping.png',
+    iconSize: [50, 50], // Mírně větší pro zvýraznění
+    iconAnchor: [25, 25],
+    className: "animate-pulse", // Přidáme pulzování pomocí Tailwindu
+  });
 
   // Výchozí pozice (Praha) se použije, pokud mapa nemá žádné restaurace k vycentrování
   const defaultPosition: [number, number] = [50.0755, 14.4378];
@@ -68,10 +84,15 @@ export default function Map({
           // Pokud restaurace ještě nemá GPS souřadnice, přeskočíme ji
           if (!restaurant.latitude || !restaurant.longitude) return null;
           
+          // Vybereme správnou ikonku podle toho, jestli je tohle ta vybraná
+          const isSelected = selectedRestaurant?.restaurant_id === restaurant.restaurant_id;
+
           return (
             <Marker 
               key={restaurant.restaurant_id} 
               position={[restaurant.latitude, restaurant.longitude]}
+              icon={isSelected ? currentPingIcon : customPingIcon}
+              zIndexOffset={isSelected ? 1000 : 0} // Dáme vybranou ikonku úplně navrch
               eventHandlers={{
                 click: () => {
                   if (onRestaurantClick) {

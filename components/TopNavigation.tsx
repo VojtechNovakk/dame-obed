@@ -1,26 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { User, Map, Heart, List } from "lucide-react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { User, Map, Heart, List, Search } from "lucide-react";
 
-export default function TopNavigation() {
-  const [activeTab, setActiveTab] = useState("mapa");
+export default function TopNavigation({
+  activeTab,
+  onTabChange
+}: {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}) {
   const { data: session } = useSession();
+  
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [isTodayOnly, setIsTodayOnly] = useState(searchParams.get("today") === "true");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchTerm) {
+        params.set("search", searchTerm);
+      } else {
+        params.delete("search");
+      }
+
+      if (isTodayOnly) {
+        params.set("today", "true");
+      } else {
+        params.delete("today");
+      }
+
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, isTodayOnly, pathname, router]); // deliberately excluding searchParams to avoid infinite loop on URL change
 
   const handleTabClick = (tab: string) => {
     if (tab === "oblibene" && !session) {
       signIn();
       return;
     }
-    setActiveTab(tab);
+    onTabChange(tab);
   };
 
   return (
     <nav className="w-full flex flex-wrap md:flex-nowrap justify-between items-center gap-4 z-50 relative pointer-events-auto">
       
       {/* Hlavička stránky - umístěná nalevo */}
-      <header className="flex flex-col">
+      <header className="flex flex-col flex-1">
         <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent drop-shadow-md">
           Dáme <span className="text-emerald-400">Oběd</span>
         </h1>
@@ -29,8 +62,9 @@ export default function TopNavigation() {
         </p>
       </header>
 
-      {/* Hlavní navigace - vycentrovaná */}
-      <div className="flex items-center bg-neutral-800/60 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-2xl mx-auto md:mx-0 order-3 w-full md:w-auto md:order-2 justify-center">
+      {/* Hlavní navigace a vyhledávání - vycentrované */}
+      <div className="flex flex-col items-center gap-2 order-3 w-full md:w-auto md:order-2 shrink-0">
+        <div className="flex items-center bg-neutral-800/60 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-2xl justify-center w-full md:w-auto">
         <button
           onClick={() => handleTabClick("mapa")}
           className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
@@ -64,11 +98,50 @@ export default function TopNavigation() {
           <List size={18} />
           <span className="hidden sm:inline">Seznam</span>
         </button>
+        </div>
+
+        {/* Vyhledávání a přepínač */}
+        <div className="flex items-center gap-3 w-full">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={16} className="text-neutral-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Hledat podnik nebo jídlo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-neutral-800/60 backdrop-blur-xl border border-white/10 rounded-xl text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all shadow-xl"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => setIsTodayOnly(!isTodayOnly)}>
+            <span className={`text-xs font-semibold transition-colors ${isTodayOnly ? 'text-emerald-400' : 'text-neutral-400'}`}>
+              Pouze dnes
+            </span>
+            <button
+              title={isTodayOnly ? "Hledat pouze v dnešním menu (Zapnuto)" : "Hledat pouze v dnešním menu (Vypnuto)"}
+              className={`relative flex items-center shrink-0 w-11 h-6 rounded-full transition-all duration-300 border border-white/10 focus:outline-none pointer-events-none ${
+                isTodayOnly 
+                  ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.6)]' 
+                  : 'bg-neutral-800'
+              }`}
+            >
+              <div 
+                className={`absolute w-4 h-4 rounded-full bg-white transition-all duration-300 transform ${
+                  isTodayOnly ? 'translate-x-[22px]' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Ikonka uživatele úplně vpravo */}
-      <button 
-        onClick={() => session ? (window.confirm('Přejete si odhlásit se?') && signOut()) : signIn()}
+      <div className="flex items-center gap-3 order-2 md:order-3 flex-1 justify-end">
+
+        <button 
+          onClick={() => session ? (window.confirm('Přejete si odhlásit se?') && signOut()) : signIn()}
         title={session ? `Odhlásit se (${session.user?.name})` : "Přihlásit se"}
         className={`w-11 h-11 rounded-full bg-neutral-800/60 backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-xl order-2 md:order-3 ${
           session 
@@ -82,6 +155,7 @@ export default function TopNavigation() {
           <User size={20} />
         )}
       </button>
+      </div>
     </nav>
   );
 }

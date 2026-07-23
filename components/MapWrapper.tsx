@@ -14,16 +14,20 @@ const DynamicMap = dynamic(() => import('./Map'), {
 
 export default function MapWrapper({ 
   restaurants = [], 
+  selectedRestaurant,
   onRestaurantClick
 }: { 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   restaurants?: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  selectedRestaurant?: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onRestaurantClick?: (restaurant: any) => void
 }) {
   return (
     <DynamicMap 
       restaurants={restaurants} 
+      selectedRestaurant={selectedRestaurant}
       onRestaurantClick={onRestaurantClick} 
     />
   );

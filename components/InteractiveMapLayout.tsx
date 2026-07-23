@@ -1,20 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import MapWrapper from "./MapWrapper";
-import { X, Clock, MapPin, ExternalLink } from "lucide-react";
-import { getMenu } from "@/lib/actions";
+import { X, Clock, MapPin, ExternalLink, Heart } from "lucide-react";
+import { getMenu, addFavourite, removeFavourite } from "@/lib/actions";
 
 import TopNavigation from "./TopNavigation";
+import RestaurantList from "./RestaurantList";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function InteractiveMapLayout({ restaurants }: { restaurants: any[] }) {
+export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [] }: { restaurants: any[], initialFavouriteIds?: number[] }) {
+  const { data: session } = useSession();
+  const [favouriteIds, setFavouriteIds] = useState<number[]>(initialFavouriteIds);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRestaurant, setSelectedRestaurant] = useState<any | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [allMeals, setAllMeals] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState("mapa");
 
   useEffect(() => {
     if (!selectedRestaurant) {
@@ -40,7 +46,31 @@ export default function InteractiveMapLayout({ restaurants }: { restaurants: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const uniqueDates = Array.from(new Set(allMeals.map((meal: any) => new Date(meal.valid_for_date).toDateString())));
 
+  const handleToggleFavourite = async () => {
+    if (!session || !session.user?.id || !selectedRestaurant) {
+      alert("Pro přidání do oblíbených se musíte přihlásit.");
+      return;
+    }
+    
+    const rId = selectedRestaurant.restaurant_id;
+    const uId = parseInt(session.user.id);
+    const isFav = favouriteIds.includes(rId);
 
+    // Optimistický update UI
+    setFavouriteIds(prev => isFav ? prev.filter(id => id !== rId) : [...prev, rId]);
+
+    try {
+      if (isFav) {
+        await removeFavourite(uId, rId);
+      } else {
+        await addFavourite(uId, rId);
+      }
+    } catch (e) {
+      console.error(e);
+      // Revert if error
+      setFavouriteIds(prev => !isFav ? prev.filter(id => id !== rId) : [...prev, rId]);
+    }
+  };
 
   return (
     <div className="w-full h-full flex flex-col md:flex-row relative">
@@ -49,14 +79,27 @@ export default function InteractiveMapLayout({ restaurants }: { restaurants: any
         {/* Hlavní navigace plovoucí nad mapou */}
         <div className="absolute top-0 left-0 w-full z-50 pointer-events-none p-4 md:p-6">
           <div className="pointer-events-auto w-full max-w-7xl mx-auto">
-            <TopNavigation />
+            <TopNavigation activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
         </div>
 
-        <MapWrapper 
-          restaurants={restaurants} 
-          onRestaurantClick={(r) => setSelectedRestaurant(r)}
-        />
+        {activeTab === "list" ? (
+          <RestaurantList 
+            restaurants={restaurants} 
+            onRestaurantClick={(r) => setSelectedRestaurant(r)} 
+          />
+        ) : activeTab === "oblibene" ? (
+          <RestaurantList 
+            restaurants={restaurants.filter(r => favouriteIds.includes(r.restaurant_id))} 
+            onRestaurantClick={(r) => setSelectedRestaurant(r)} 
+          />
+        ) : (
+          <MapWrapper 
+            restaurants={restaurants} 
+            selectedRestaurant={selectedRestaurant}
+            onRestaurantClick={(r) => setSelectedRestaurant(r)}
+          />
+        )}
       </div>
 
       {/* Detail Panel */}
@@ -72,6 +115,18 @@ export default function InteractiveMapLayout({ restaurants }: { restaurants: any
             className="absolute top-4 left-4 md:top-6 md:left-6 w-11 h-11 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-colors z-10 shadow-xl"
           >
             <X size={20} />
+          </button>
+          
+          <button 
+            onClick={handleToggleFavourite}
+            className={`absolute top-4 right-4 md:top-6 md:right-6 w-11 h-11 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full flex items-center justify-center backdrop-blur-md transition-colors z-10 shadow-xl ${
+              selectedRestaurant && favouriteIds.includes(selectedRestaurant.restaurant_id) ? "text-red-500 hover:text-red-400" : "text-white"
+            }`}
+          >
+            <Heart 
+              size={20} 
+              fill={selectedRestaurant && favouriteIds.includes(selectedRestaurant.restaurant_id) ? "currentColor" : "none"} 
+            />
           </button>
 
           <div className="p-6 pt-20 md:pt-24 overflow-y-auto flex-1 custom-scrollbar">
