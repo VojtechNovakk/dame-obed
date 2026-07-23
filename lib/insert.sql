@@ -1,7 +1,5 @@
 BEGIN;
 
-INSERT INTO users (email, username, password) VALUES
-('user@example.com', 'user', 'password');
 
 INSERT INTO restaurants (restaurant_id, address, name, latitude, longitude) VALUES
 (1, 'Karlovo náměstí 1, Praha', 'Salieri Ristorante', 50.081812, 14.417345),
