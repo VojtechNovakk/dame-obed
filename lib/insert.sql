@@ -1,10 +1,10 @@
 BEGIN;
 
 
-INSERT INTO restaurants (restaurant_id, address, name, latitude, longitude) VALUES
-(1, 'Karlovo náměstí 1, Praha', 'Salieri Ristorante', 50.081812, 14.417345),
-(2, 'Dejvická 42, Praha', 'The Cyberpunk Burger', 50.080521, 14.419211),
-(3, 'Via Roma 15, Cecina', 'Tuscan Grill & Steaks', 50.081134, 14.415890);
+INSERT INTO restaurants (restaurant_id, address, name, url, latitude, longitude) VALUES
+(1, 'Karlovo náměstí 1, Praha', 'Salieri Ristorante', 'https://www.google.com/search?q=Salieri+Ristorante+Praha', 50.081812, 14.417345),
+(2, 'Dejvická 42, Praha', 'The Cyberpunk Burger', 'https://www.google.com/search?q=The+Cyberpunk+Burger', 50.080521, 14.419211),
+(3, 'Via Roma 15, Cecina', 'Tuscan Grill & Steaks', 'https://www.google.com/search?q=Tuscan+Grill+Steaks', 50.081134, 14.415890);
 
 INSERT INTO menus (menu_id, restaurant_id, valid_for_date, created_at) VALUES
 (1, 1, '2026-07-22', NOW()),

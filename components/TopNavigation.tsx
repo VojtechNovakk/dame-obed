@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { User, Map, Heart, List, Search } from "lucide-react";
+import { User, Map, Heart, List, Search, LogOut, Loader2 } from "lucide-react";
 
 export default function TopNavigation({
   activeTab,
@@ -17,12 +17,28 @@ export default function TopNavigation({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
-  const [isTodayOnly, setIsTodayOnly] = useState(searchParams.get("today") === "true");
+  const currentSearch = searchParams.get("search") || "";
+  const currentToday = searchParams.get("today") === "true";
 
+  const [searchTerm, setSearchTerm] = useState(currentSearch);
+  const [isTodayOnly, setIsTodayOnly] = useState(currentToday);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  // Synchronizace lokálního stavu s URL (např. při použití tlačítka Zpět v prohlížeči)
   useEffect(() => {
+    setSearchTerm(currentSearch);
+    setIsTodayOnly(currentToday);
+  }, [currentSearch, currentToday]);
+
+  // Zápis do URL při změně lokálního stavu uživatelem
+  useEffect(() => {
+    // Provedeme zápis pouze pokud se lokální stav opravdu liší od URL
+    if (searchTerm === currentSearch && isTodayOnly === currentToday) return;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
+      
       if (searchTerm) {
         params.set("search", searchTerm);
       } else {
@@ -35,11 +51,13 @@ export default function TopNavigation({
         params.delete("today");
       }
 
-      router.replace(`${pathname}?${params.toString()}`);
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, isTodayOnly, pathname, router]); // deliberately excluding searchParams to avoid infinite loop on URL change
+  }, [searchTerm, isTodayOnly, currentSearch, currentToday, pathname, router, searchParams]);
 
   const handleTabClick = (tab: string) => {
     if (tab === "oblibene" && !session) {
@@ -74,7 +92,7 @@ export default function TopNavigation({
           }`}
         >
           <Map size={18} />
-          <span>Mapa</span>
+          <span className="hidden sm:inline">Mapa</span>
         </button>
         <button
           onClick={() => handleTabClick("oblibene")}
@@ -111,8 +129,13 @@ export default function TopNavigation({
               placeholder="Hledat podnik nebo jídlo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-neutral-800/60 backdrop-blur-xl border border-white/10 rounded-xl text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all shadow-xl"
+              className="w-full pl-10 pr-10 py-2.5 bg-neutral-800/60 backdrop-blur-xl border border-white/10 rounded-xl text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all shadow-xl"
             />
+            {isPending && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <Loader2 size={16} className="text-emerald-500 animate-spin" />
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => setIsTodayOnly(!isTodayOnly)}>
@@ -138,23 +161,43 @@ export default function TopNavigation({
       </div>
 
       {/* Ikonka uživatele úplně vpravo */}
-      <div className="flex items-center gap-3 order-2 md:order-3 flex-1 justify-end">
+      <div className="flex items-center gap-3 order-2 md:order-3 flex-1 justify-end relative">
 
         <button 
-          onClick={() => session ? (window.confirm('Přejete si odhlásit se?') && signOut()) : signIn()}
-        title={session ? `Odhlásit se (${session.user?.name})` : "Přihlásit se"}
-        className={`w-11 h-11 rounded-full bg-neutral-800/60 backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-xl order-2 md:order-3 ${
-          session 
-            ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10' 
-            : 'border-white/10 text-neutral-400 hover:text-white hover:bg-neutral-700/50'
-        }`}
-      >
-        {session && session.user?.name ? (
-          <span className="font-bold text-sm uppercase">{session.user.name.charAt(0)}</span>
-        ) : (
-          <User size={20} />
+          onClick={() => session ? setIsProfileMenuOpen(!isProfileMenuOpen) : signIn()}
+          title={session ? `Profil (${session.user?.name})` : "Přihlásit se"}
+          className={`w-11 h-11 rounded-full bg-neutral-800/60 backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-xl order-2 md:order-3 z-10 ${
+            session 
+              ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10' 
+              : 'border-white/10 text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+          }`}
+        >
+          {session && session.user?.name ? (
+            <span className="font-bold text-sm uppercase">{session.user.name.charAt(0)}</span>
+          ) : (
+            <User size={20} />
+          )}
+        </button>
+
+        {/* Rozbalovací menu pro profil */}
+        {session && isProfileMenuOpen && (
+          <div className="absolute top-[110%] right-0 mt-1 w-56 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="px-4 py-3 border-b border-white/10 bg-white/5">
+              <p className="text-sm font-semibold text-white truncate">{session.user?.name || "Uživatel"}</p>
+              <p className="text-xs text-neutral-400 truncate">{session.user?.email || ""}</p>
+            </div>
+            <button 
+              onClick={() => {
+                setIsProfileMenuOpen(false);
+                signOut();
+              }}
+              className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition-colors flex items-center gap-3"
+            >
+              <LogOut size={16} />
+              Odhlásit se
+            </button>
+          </div>
         )}
-      </button>
       </div>
     </nav>
   );
