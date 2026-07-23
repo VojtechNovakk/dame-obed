@@ -30,6 +30,21 @@ export default async function Home(props: { searchParams?: Promise<{ search?: st
     restaurants = result.rows;
   }
 
+  // Načtení dnešních meníček pro všechny restaurace pro zobrazení na kartách
+  const menusResult = await query(`
+    SELECT m.restaurant_id, json_agg(json_build_object('name', ml.name, 'price', ml.price)) as meals
+    FROM menus m
+    JOIN meals ml USING(menu_id)
+    WHERE m.valid_for_date = CURRENT_DATE
+    GROUP BY m.restaurant_id
+  `);
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const todayMealsMap: Record<number, any[]> = {};
+  for (const row of menusResult.rows) {
+     todayMealsMap[row.restaurant_id] = row.meals;
+  }
+
   return (
     <main className="h-[100dvh] w-screen bg-neutral-950 text-white selection:bg-emerald-500/30 flex flex-col overflow-hidden relative">
       
@@ -41,7 +56,7 @@ export default async function Home(props: { searchParams?: Promise<{ search?: st
 
       {/* Map Layout, který zabírá celý prostor */}
       <div className="flex-1 w-full relative z-0">
-        <InteractiveMapLayout restaurants={restaurants} initialFavouriteIds={favouriteIds} />
+        <InteractiveMapLayout restaurants={restaurants} initialFavouriteIds={favouriteIds} todayMealsMap={todayMealsMap} />
       </div>
 
     </main>

@@ -10,9 +10,15 @@ import TopNavigation from "./TopNavigation";
 import RestaurantList from "./RestaurantList";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [] }: { restaurants: any[], initialFavouriteIds?: number[] }) {
+export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [], todayMealsMap = {} }: { restaurants: any[], initialFavouriteIds?: number[], todayMealsMap?: Record<number, any[]> }) {
   const { data: session } = useSession();
   const [favouriteIds, setFavouriteIds] = useState<number[]>(initialFavouriteIds);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRestaurant, setSelectedRestaurant] = useState<any | null>(null);
@@ -60,14 +66,24 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
     setFavouriteIds(prev => isFav ? prev.filter(id => id !== rId) : [...prev, rId]);
 
     try {
+      let result;
       if (isFav) {
-        await removeFavourite(uId, rId);
+        result = await removeFavourite(uId, rId);
       } else {
-        await addFavourite(uId, rId);
+        result = await addFavourite(uId, rId);
+      }
+      
+      if (result?.error) {
+        showToast(result.error, 'error');
+        // Revert if error
+        setFavouriteIds(prev => !isFav ? prev.filter(id => id !== rId) : [...prev, rId]);
+      } else {
+        showToast(isFav ? "Odebráno z oblíbených." : "Přidáno do oblíbených!", 'success');
       }
     } catch (e) {
       console.error(e);
-      // Revert if error
+      showToast("Došlo k nečekané chybě.", 'error');
+      // Revert if network error or unhandled exception
       setFavouriteIds(prev => !isFav ? prev.filter(id => id !== rId) : [...prev, rId]);
     }
   };
@@ -87,11 +103,15 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
           <RestaurantList 
             restaurants={restaurants} 
             onRestaurantClick={(r) => setSelectedRestaurant(r)} 
+            emptyMessage={restaurants.length === 0 ? "Žádné restaurace neodpovídají vašemu vyhledávání." : undefined}
+            todayMealsMap={todayMealsMap}
           />
         ) : activeTab === "oblibene" ? (
           <RestaurantList 
             restaurants={restaurants.filter(r => favouriteIds.includes(r.restaurant_id))} 
             onRestaurantClick={(r) => setSelectedRestaurant(r)} 
+            emptyMessage={favouriteIds.length === 0 ? "Zatím nemáte žádné oblíbené restaurace. Přidejte si je kliknutím na srdíčko v detailu restaurace." : "Vašemu vyhledávání neodpovídají žádné z vašich oblíbených restaurací."}
+            todayMealsMap={todayMealsMap}
           />
         ) : (
           <MapWrapper 
@@ -196,13 +216,37 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
               )}
             </div>
 
-            <button className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-semibold transition-colors">
-              Přejít na web restaurace
-              <ExternalLink size={16} />
-            </button>
+            {selectedRestaurant?.url ? (
+              <a 
+                href={selectedRestaurant.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-semibold transition-colors"
+              >
+                Přejít na web restaurace
+                <ExternalLink size={16} />
+              </a>
+            ) : (
+              <button disabled className="w-full flex items-center justify-center gap-2 bg-neutral-800 text-neutral-500 cursor-not-allowed py-3 rounded-xl font-semibold transition-colors">
+                Web nedostupný
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Toast Notifikace */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-none">
+          <div className={`px-6 py-3 rounded-full backdrop-blur-xl shadow-2xl border font-medium text-sm flex items-center gap-2 ${
+            toast.type === 'success' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+            toast.type === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+            'bg-neutral-800/80 text-white border-white/10'
+          }`}>
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

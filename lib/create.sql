@@ -13,6 +13,7 @@ CREATE TABLE restaurants(
     restaurant_id SERIAL,
     address       VARCHAR(255) NOT NULL,
     name          VARCHAR(255) NOT NULL,
+    url           VARCHAR(255) NOT NULL,
     latitude      DECIMAL(9, 6) NOT NULL,
     longitude     DECIMAL(9, 6) NOT NULL
 );
