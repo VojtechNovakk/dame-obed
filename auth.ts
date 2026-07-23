@@ -17,7 +17,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         try {
-          const result = await query('SELECT * FROM users WHERE email = $1', [credentials.email as string]);
+          const result = await query('SELECT user_id, email, username, password FROM users WHERE email = $1', [credentials.email as string]);
           const user = result.rows[0];
 
           if (!user || !user.password) {

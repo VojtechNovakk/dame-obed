@@ -4,18 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useState } from "react";
-import { LocateFixed } from "lucide-react";
-
-// Oprava problému s ikonkami markerů v Next.js
-const fixLeafletIcon = () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  });
-};
+import type { Restaurant } from '@/lib/types';
 
 function MapResizer() {
   const map = useMap();
@@ -37,20 +26,32 @@ function LocationMarker() {
   useEffect(() => {
     map.locate({ setView: false, maxZoom: 16 });
 
-    map.on('locationfound', (e) => {
+    const handleLocationFound = (e: L.LocationEvent) => {
       setPosition(e.latlng);
       map.flyTo(e.latlng, 14, { animate: true, duration: 1.5 });
-    });
+    };
 
-    map.on('locationerror', (e) => {
+    const handleLocationError = (e: L.ErrorEvent) => {
       console.log("Geolokace selhala nebo byla zamítnuta: ", e.message);
-    });
+    };
+
+    map.on('locationfound', handleLocationFound);
+    map.on('locationerror', handleLocationError);
+
+    return () => {
+      map.off('locationfound', handleLocationFound);
+      map.off('locationerror', handleLocationError);
+    };
   }, [map]);
 
+  const userIcon = new L.Icon({
+    iconUrl: '/user_pos.png',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+
   return position === null ? null : (
-    <Marker position={position}>
-      {/* Můžeme sem přidat custom modrý bod pro uživatele */}
-    </Marker>
+    <Marker position={position} icon={userIcon} />
   );
 }
 
@@ -59,16 +60,10 @@ export default function Map({
   selectedRestaurant,
   onRestaurantClick 
 }: { 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  restaurants?: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  selectedRestaurant?: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onRestaurantClick?: (restaurant: any) => void
+  restaurants?: Restaurant[],
+  selectedRestaurant?: Restaurant | null,
+  onRestaurantClick?: (restaurant: Restaurant) => void
 }) {
-  useEffect(() => {
-    fixLeafletIcon();
-  }, []);
 
   const customPingIcon = new L.Icon({
     iconUrl: '/ping.png',
@@ -98,19 +93,6 @@ export default function Map({
       >
         <MapResizer />
         <LocationMarker />
-        
-        {/* Vlastní tlačítko pro vycentrování na uživatele */}
-        <div className="leaflet-top leaflet-right mt-24 mr-4 pointer-events-auto absolute z-[1000] right-4 top-24 hidden md:block">
-          <button 
-            onClick={(e) => {
-              e.preventDefault();
-              // Lze triggerovat map.locate() ale museli bychom mít přístup k map instanci
-              // Pro jednoduchost to vyřeší LocationMarker při mountu, a toto by se dalo vylepšit
-            }}
-            className="hidden"
-          >
-          </button>
-        </div>
         
         {/* Nádherné Dark Theme mapové podklady od CartoDB */}
         <TileLayer

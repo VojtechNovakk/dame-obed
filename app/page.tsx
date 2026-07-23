@@ -1,8 +1,8 @@
 import InteractiveMapLayout from '@/components/InteractiveMapLayout';
 
-import { query } from '@/lib/db';
 import { auth } from "@/auth";
-import { searchRestaurants, searchTodayRestaurants } from '@/lib/actions';
+import { getTodayRestaurants, searchRestaurants, searchTodayRestaurants } from '@/lib/actions';
+import { getAllRestaurants, getFavouriteIds, getTodayMealsMap } from '@/lib/data';
 
 export default async function Home(props: { searchParams?: Promise<{ search?: string, today?: string }> }) {
   const searchParams = await props.searchParams;
@@ -14,36 +14,23 @@ export default async function Home(props: { searchParams?: Promise<{ search?: st
 
   let favouriteIds: number[] = [];
   if (userId) {
-    const favResult = await query('SELECT restaurant_id FROM favourites WHERE user_id = $1', [userId]);
-    favouriteIds = favResult.rows.map(r => r.restaurant_id);
+    favouriteIds = await getFavouriteIds(userId);
   }
 
   let restaurants;
-  if (search) {
-    if (isTodayOnly) {
+  if (isTodayOnly) {
+    if (search) {
       restaurants = await searchTodayRestaurants(search);
     } else {
-      restaurants = await searchRestaurants(search);
+      restaurants = await getTodayRestaurants();
     }
+  } else if (search) {
+    restaurants = await searchRestaurants(search);
   } else {
-    const result = await query('SELECT * FROM restaurants');
-    restaurants = result.rows;
+    restaurants = await getAllRestaurants();
   }
 
-  // Načtení dnešních meníček pro všechny restaurace pro zobrazení na kartách
-  const menusResult = await query(`
-    SELECT m.restaurant_id, json_agg(json_build_object('name', ml.name, 'price', ml.price)) as meals
-    FROM menus m
-    JOIN meals ml USING(menu_id)
-    WHERE m.valid_for_date = CURRENT_DATE
-    GROUP BY m.restaurant_id
-  `);
-  
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const todayMealsMap: Record<number, any[]> = {};
-  for (const row of menusResult.rows) {
-     todayMealsMap[row.restaurant_id] = row.meals;
-  }
+  const todayMealsMap = await getTodayMealsMap();
 
   return (
     <main className="h-[100dvh] w-screen bg-neutral-950 text-white selection:bg-emerald-500/30 flex flex-col overflow-hidden relative">

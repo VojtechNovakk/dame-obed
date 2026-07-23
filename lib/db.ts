@@ -1,10 +1,15 @@
-import { Pool } from 'pg';
+import { Pool, QueryResultRow } from 'pg';
 
-const pool = new Pool({
+const globalForPg = globalThis as unknown as { pool: Pool };
+
+const pool = globalForPg.pool ?? new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const query = (text: string, params?: any[]) => {
-  return pool.query(text, params);
-};
+if (process.env.NODE_ENV !== 'production') {
+  globalForPg.pool = pool;
+}
+
+export function query<T extends QueryResultRow = QueryResultRow>(text: string, params?: (string | number | boolean | null)[]) {
+  return pool.query<T>(text, params);
+}

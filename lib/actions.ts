@@ -1,11 +1,26 @@
 "use server";
 
+import { auth } from '@/auth';
 import { query } from '@/lib/db';
 import bcrypt from "bcryptjs";
+import { z } from "zod";
+import type { Restaurant, MenuMeal } from './types';
 
-export async function getMenu(restaurantId: number) {
-    const result = await query(`
-        SELECT m.menu_id, m.valid_for_date, ml.name, ml.price
+// Zod schema for registration validation
+const registerSchema = z.object({
+    email: z.string().email("Zadejte platnou e-mailovou adresu."),
+    username: z.string().min(2, "Uživatelské jméno musí mít alespoň 2 znaky.").max(50, "Uživatelské jméno může mít maximálně 50 znaků."),
+    password: z.string().min(8, "Heslo musí mít alespoň 8 znaků."),
+});
+
+// Escapes LIKE meta-characters to prevent LIKE pattern injection
+function escapeLikePattern(input: string): string {
+    return input.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+export async function getMenu(restaurantId: number): Promise<MenuMeal[]> {
+    const result = await query<MenuMeal>(`
+        SELECT m.menu_id, m.valid_for_date, ml.meal_id, ml.name, ml.price
         FROM menus m
         JOIN meals ml USING(menu_id)
         WHERE m.restaurant_id = $1 AND m.valid_for_date >= CURRENT_DATE
@@ -25,8 +40,15 @@ export async function registerUser(formData: FormData) {
         return { error: "Všechna pole jsou povinná." };
     }
 
+    // Validate with zod
+    const validation = registerSchema.safeParse({ email, username, password });
+    if (!validation.success) {
+        const firstError = validation.error.issues[0]?.message;
+        return { error: firstError || "Neplatné údaje." };
+    }
+
     try {
-        const existing = await query('SELECT * FROM users WHERE email = $1 OR username = $2', [email, username]);
+        const existing = await query<{ user_id: number }>('SELECT user_id FROM users WHERE email = $1 OR username = $2', [email, username]);
         if (existing.rows.length > 0) {
             return { error: "Uživatel s tímto e-mailem nebo jménem už existuje." };
         }
@@ -44,31 +66,50 @@ export async function registerUser(formData: FormData) {
     }
 }
 
-export async function searchRestaurants(queryString: string){
-    const result = await query(`
-        SELECT DISTINCT r.*
+export async function searchRestaurants(queryString: string): Promise<Restaurant[]> {
+    const escaped = escapeLikePattern(queryString);
+    const result = await query<Restaurant>(`
+        SELECT DISTINCT r.restaurant_id, r.name, r.address, r.url, r.latitude, r.longitude
         FROM restaurants r
         LEFT JOIN menus mn ON r.restaurant_id=mn.restaurant_id
         LEFT JOIN meals ml ON mn.menu_id=ml.menu_id
         WHERE LOWER(r.name) LIKE LOWER('%' || $1 || '%') 
-        OR LOWER(ml.name) LIKE LOWER('%' || $1 || '%');`, [queryString]);
+        OR LOWER(ml.name) LIKE LOWER('%' || $1 || '%');`, [escaped]);
     return result.rows;
 }
 
-export async function searchTodayRestaurants(queryString: string){
-    const result = await query(`
-        SELECT DISTINCT r.*
+export async function searchTodayRestaurants(queryString: string): Promise<Restaurant[]> {
+    const escaped = escapeLikePattern(queryString);
+    const result = await query<Restaurant>(`
+        SELECT DISTINCT r.restaurant_id, r.name, r.address, r.url, r.latitude, r.longitude
         FROM restaurants r
-        LEFT JOIN menus mn ON r.restaurant_id=mn.restaurant_id AND mn.valid_for_date = CURRENT_DATE
+        JOIN menus mn ON r.restaurant_id=mn.restaurant_id AND mn.valid_for_date = CURRENT_DATE
         LEFT JOIN meals ml ON mn.menu_id=ml.menu_id
         WHERE LOWER(r.name) LIKE LOWER('%' || $1 || '%') 
-        OR LOWER(ml.name) LIKE LOWER('%' || $1 || '%');`, [queryString]);
+        OR LOWER(ml.name) LIKE LOWER('%' || $1 || '%');`, [escaped]);
     return result.rows;
 }
 
-export async function addFavourite(userId: number, restaurantId: number) {
+export async function getTodayRestaurants(): Promise<Restaurant[]> {
+    const result = await query<Restaurant>(`
+        SELECT DISTINCT r.restaurant_id, r.name, r.address, r.url, r.latitude, r.longitude
+        FROM restaurants r
+        JOIN menus mn ON r.restaurant_id = mn.restaurant_id
+        WHERE mn.valid_for_date = CURRENT_DATE;
+    `);
+    return result.rows;
+}
+
+export async function addFavourite(restaurantId: number) {
     try{
-        await query('INSERT INTO favourites (user_id, restaurant_id) VALUES ($1, $2)', [userId, restaurantId]);
+        const session = await auth();
+        const userId = session?.user?.id ? parseInt(session.user.id) : null;
+
+        if (!userId) {
+            return { error: "Pro tuto akci se musíte přihlásit." };
+        }
+
+        await query('INSERT INTO favourites (user_id, restaurant_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, restaurantId]);
         return { success: true };
     }catch(err){
         console.error(err);
@@ -76,8 +117,15 @@ export async function addFavourite(userId: number, restaurantId: number) {
     }
 }
 
-export async function removeFavourite(userId: number, restaurantId: number) {
+export async function removeFavourite(restaurantId: number) {
     try{
+        const session = await auth();
+        const userId = session?.user?.id ? parseInt(session.user.id) : null;
+
+        if (!userId) {
+            return { error: "Pro tuto akci se musíte přihlásit." };
+        }
+
         await query('DELETE FROM favourites WHERE user_id = $1 AND restaurant_id = $2', [userId, restaurantId]);
         return { success: true };
     }catch(err){

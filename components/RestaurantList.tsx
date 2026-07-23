@@ -1,5 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function RestaurantList({ restaurants, onRestaurantClick, emptyMessage = "Žádné restaurace neodpovídají vašemu vyhledávání.", todayMealsMap = {} }: { restaurants: any[], onRestaurantClick: (r: any) => void, emptyMessage?: string, todayMealsMap?: Record<number, any[]> }) {
+import type { Restaurant, TodayMealsMap } from '@/lib/types';
+
+export default function RestaurantList({ restaurants, onRestaurantClick, emptyMessage = "Žádné restaurace neodpovídají vašemu vyhledávání.", todayMealsMap = {} }: { restaurants: Restaurant[], onRestaurantClick: (r: Restaurant) => void, emptyMessage?: string, todayMealsMap?: TodayMealsMap }) {
   return (
     <div className="w-full h-full bg-neutral-950 p-6 pt-52 md:pt-32 overflow-y-auto">
       <div className="max-w-7xl mx-auto">

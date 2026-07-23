@@ -6,11 +6,11 @@ import MapWrapper from "./MapWrapper";
 import { X, Clock, MapPin, ExternalLink, Heart } from "lucide-react";
 import { getMenu, addFavourite, removeFavourite } from "@/lib/actions";
 
+import type { Restaurant, MenuMeal, TodayMealsMap } from '@/lib/types';
 import TopNavigation from "./TopNavigation";
 import RestaurantList from "./RestaurantList";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [], todayMealsMap = {} }: { restaurants: any[], initialFavouriteIds?: number[], todayMealsMap?: Record<number, any[]> }) {
+export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [], todayMealsMap = {} }: { restaurants: Restaurant[], initialFavouriteIds?: number[], todayMealsMap?: TodayMealsMap }) {
   const { data: session } = useSession();
   const [favouriteIds, setFavouriteIds] = useState<number[]>(initialFavouriteIds);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
@@ -20,13 +20,11 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
     setTimeout(() => setToast(null), 3500);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedRestaurant, setSelectedRestaurant] = useState<any | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [allMeals, setAllMeals] = useState<any[]>([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [allMeals, setAllMeals] = useState<MenuMeal[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
-  const [activeTab, setActiveTab] = useState("mapa");
+  const [activeTab, setActiveTab] = useState("map");
 
   useEffect(() => {
     if (!selectedRestaurant) {
@@ -49,8 +47,7 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
   }, [selectedRestaurant]);
 
   // Vytažení unikátních datumů z dat
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const uniqueDates = Array.from(new Set(allMeals.map((meal: any) => new Date(meal.valid_for_date).toDateString())));
+  const uniqueDates = Array.from(new Set(allMeals.map((meal) => new Date(meal.valid_for_date).toDateString())));
 
   const handleToggleFavourite = async () => {
     if (!session || !session.user?.id || !selectedRestaurant) {
@@ -59,7 +56,6 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
     }
     
     const rId = selectedRestaurant.restaurant_id;
-    const uId = parseInt(session.user.id);
     const isFav = favouriteIds.includes(rId);
 
     // Optimistický update UI
@@ -68,9 +64,9 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
     try {
       let result;
       if (isFav) {
-        result = await removeFavourite(uId, rId);
+          result = await removeFavourite(rId);
       } else {
-        result = await addFavourite(uId, rId);
+          result = await addFavourite(rId);
       }
       
       if (result?.error) {
@@ -106,7 +102,7 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
             emptyMessage={restaurants.length === 0 ? "Žádné restaurace neodpovídají vašemu vyhledávání." : undefined}
             todayMealsMap={todayMealsMap}
           />
-        ) : activeTab === "oblibene" ? (
+        ) : activeTab === "favourites" ? (
           <RestaurantList 
             restaurants={restaurants.filter(r => favouriteIds.includes(r.restaurant_id))} 
             onRestaurantClick={(r) => setSelectedRestaurant(r)} 
@@ -172,8 +168,7 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
                 <>
                   {/* Navigace mezi dny */}
                   <div className="flex gap-2 overflow-x-auto pb-2 mb-4 custom-scrollbar flex-shrink-0">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {uniqueDates.map((dateStr: any) => {
+                      {uniqueDates.map((dateStr) => {
                          const dateObj = new Date(dateStr);
                          const isToday = new Date().toDateString() === dateObj.toDateString();
                          const dateLabel = isToday ? 'Dnes' : dateObj.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' });
@@ -198,9 +193,8 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
                   <div className="space-y-4">
                     {allMeals
                       .filter(meal => new Date(meal.valid_for_date).toDateString() === selectedDate)
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      .map((meal: any, index: number) => (
-                        <div key={index} className="flex justify-between items-start gap-4 border-b border-white/5 pb-3 last:border-0">
+                      .map((meal) => (
+                        <div key={meal.meal_id} className="flex justify-between items-start gap-4 border-b border-white/5 pb-3 last:border-0">
                           <div>
                             <p className="text-sm text-neutral-200">{meal.name}</p>
                           </div>
@@ -237,7 +231,7 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
 
       {/* Toast Notifikace */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-none">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] animate-toast-in pointer-events-none">
           <div className={`px-6 py-3 rounded-full backdrop-blur-xl shadow-2xl border font-medium text-sm flex items-center gap-2 ${
             toast.type === 'success' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
             toast.type === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
