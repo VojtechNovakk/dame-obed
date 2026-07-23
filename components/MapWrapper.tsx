@@ -12,6 +12,19 @@ const DynamicMap = dynamic(() => import('./Map'), {
   )
 });
 
-export default function MapWrapper({ restaurants = [] }: { restaurants?: any[] }) {
-  return <DynamicMap restaurants={restaurants} />;
+export default function MapWrapper({ 
+  restaurants = [], 
+  onRestaurantClick
+}: { 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  restaurants?: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onRestaurantClick?: (restaurant: any) => void
+}) {
+  return (
+    <DynamicMap 
+      restaurants={restaurants} 
+      onRestaurantClick={onRestaurantClick} 
+    />
+  );
 }

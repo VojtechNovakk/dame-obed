@@ -1,12 +1,13 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect } from "react";
 
 // Oprava problému s ikonkami markerů v Next.js
 const fixLeafletIcon = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete (L.Icon.Default.prototype as any)._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -15,7 +16,28 @@ const fixLeafletIcon = () => {
   });
 };
 
-export default function Map({ restaurants = [] }: { restaurants?: any[] }) {
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    // Automatically invalidate size if container size changes (e.g. sidebar opening/closing)
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
+export default function Map({ 
+  restaurants = [], 
+  onRestaurantClick 
+}: { 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  restaurants?: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onRestaurantClick?: (restaurant: any) => void
+}) {
   useEffect(() => {
     fixLeafletIcon();
   }, []);
@@ -24,14 +46,17 @@ export default function Map({ restaurants = [] }: { restaurants?: any[] }) {
   const defaultPosition: [number, number] = [50.0755, 14.4378];
 
   return (
-    <div className="w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative z-0">
+    <div className="w-full h-full relative z-0">
       <MapContainer 
         center={defaultPosition} 
         zoom={13} 
         scrollWheelZoom={true} 
         style={{ height: "100%", width: "100%" }}
-        className="z-0"
+        className="z-0 h-full w-full"
+        zoomControl={false} // Schováme výchozí ovládání zoomu pro čistší vzhled, můžeme ho přidat jinam
       >
+        <MapResizer />
+        
         {/* Nádherné Dark Theme mapové podklady od CartoDB */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -47,16 +72,15 @@ export default function Map({ restaurants = [] }: { restaurants?: any[] }) {
             <Marker 
               key={restaurant.restaurant_id} 
               position={[restaurant.latitude, restaurant.longitude]}
+              eventHandlers={{
+                click: () => {
+                  if (onRestaurantClick) {
+                    onRestaurantClick(restaurant);
+                  }
+                }
+              }}
             >
-              <Popup className="rounded-xl overflow-hidden">
-                <div className="p-2 text-center">
-                  <h3 className="font-bold text-gray-900 text-lg">{restaurant.name}</h3>
-                  <p className="text-gray-600 text-sm mt-1">{restaurant.address}</p>
-                  <button className="mt-3 w-full bg-emerald-500 text-white py-1.5 px-3 rounded-lg text-sm font-semibold hover:bg-emerald-600 transition-colors">
-                    Dnešní menu
-                  </button>
-                </div>
-              </Popup>
+              {/* Záměrně bez Popup - nahrazeno bočním panelem */}
             </Marker>
           );
         })}
