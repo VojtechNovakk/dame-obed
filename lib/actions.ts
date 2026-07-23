@@ -43,3 +43,45 @@ export async function registerUser(formData: FormData) {
         return { error: "Došlo k chybě při registraci. Zkuste to prosím znovu." };
     }
 }
+
+export async function searchRestaurants(queryString: string){
+    const result = await query(`
+        SELECT DISTINCT r.*
+        FROM restaurants r
+        LEFT JOIN menus mn ON r.restaurant_id=mn.restaurant_id
+        LEFT JOIN meals ml ON mn.menu_id=ml.menu_id
+        WHERE LOWER(r.name) LIKE LOWER('%' || $1 || '%') 
+        OR LOWER(ml.name) LIKE LOWER('%' || $1 || '%');`, [queryString]);
+    return result.rows;
+}
+
+export async function searchTodayRestaurants(queryString: string){
+    const result = await query(`
+        SELECT DISTINCT r.*
+        FROM restaurants r
+        LEFT JOIN menus mn ON r.restaurant_id=mn.restaurant_id AND mn.valid_for_date = CURRENT_DATE
+        LEFT JOIN meals ml ON mn.menu_id=ml.menu_id
+        WHERE LOWER(r.name) LIKE LOWER('%' || $1 || '%') 
+        OR LOWER(ml.name) LIKE LOWER('%' || $1 || '%');`, [queryString]);
+    return result.rows;
+}
+
+export async function addFavourite(userId: number, restaurantId: number) {
+    try{
+        await query('INSERT INTO favourites (user_id, restaurant_id) VALUES ($1, $2)', [userId, restaurantId]);
+        return { success: true };
+    }catch(err){
+        console.error(err);
+        return { error: "Došlo k chybě při přidávání do oblíbených. Zkuste to prosím znovu." };
+    }
+}
+
+export async function removeFavourite(userId: number, restaurantId: number) {
+    try{
+        await query('DELETE FROM favourites WHERE user_id = $1 AND restaurant_id = $2', [userId, restaurantId]);
+        return { success: true };
+    }catch(err){
+        console.error(err);
+        return { error: "Došlo k chybě při odstraňování z oblíbených. Zkuste to prosím znovu." };
+    }
+}
