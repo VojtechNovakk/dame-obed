@@ -41,17 +41,10 @@ export default function TopNavigation({
 
   // Synchronizace lokálního stavu s URL (např. při použití tlačítka Zpět v prohlížeči)
   useEffect(() => {
-    if (searchTerm === currentSearch && isTodayOnly === currentToday) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setSearchTerm(currentSearch);
-      setIsTodayOnly(currentToday);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [currentSearch, currentToday, searchTerm, isTodayOnly]);
+    setSearchTerm(currentSearch);
+    setIsTodayOnly(currentToday);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSearch, currentToday]);
 
   // Zápis do URL při změně lokálního stavu uživatelem
   useEffect(() => {
@@ -90,10 +83,10 @@ export default function TopNavigation({
   };
 
   return (
-    <nav className="w-full flex flex-wrap md:flex-nowrap justify-between items-center gap-4 z-50 relative pointer-events-auto">
+    <nav className="w-full flex justify-between items-start gap-4 z-50 relative pointer-events-auto">
       
       {/* Hlavička stránky - umístěná nalevo */}
-      <header className="flex flex-col flex-1">
+      <header className="flex flex-col flex-1 pt-1">
         <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent drop-shadow-md">
           Dáme <span className="text-emerald-400">Oběd</span>
         </h1>
@@ -102,45 +95,46 @@ export default function TopNavigation({
         </p>
       </header>
 
-      {/* Hlavní navigace a vyhledávání - vycentrované */}
-      <div className="flex flex-col items-center gap-2 order-3 w-full md:w-auto md:order-2 shrink-0">
-        <div className="flex items-center bg-neutral-800/60 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-2xl justify-center w-full md:w-auto">
-        <button
-          onClick={() => handleTabClick("map")}
-          className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
-            activeTab === "map"
-              ? "bg-neutral-700/80 text-white shadow-sm"
-              : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
-          }`}
-        >
-          <Map size={18} />
-          <span className="hidden sm:inline">Mapa</span>
-        </button>
-        <button
-          onClick={() => handleTabClick("favourites")}
-          className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
-            activeTab === "favourites"
-              ? "bg-neutral-700/80 text-white shadow-sm"
-              : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
-          }`}
-        >
-          <Heart size={18} />
-          <span className="hidden sm:inline">Oblíbené</span>
-        </button>
-        <button
-          onClick={() => handleTabClick("list")}
-          className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
-            activeTab === "list"
-              ? "bg-neutral-700/80 text-white shadow-sm"
-              : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
-          }`}
-        >
-          <List size={18} />
-          <span className="hidden sm:inline">Seznam</span>
-        </button>
+      {/* Střed: Taby + Vyhledávání se stejnou šířkou */}
+      <div className="flex flex-col items-stretch gap-2 shrink-0">
+        {/* Tab navigace */}
+        <div className="flex items-center bg-neutral-800/60 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-2xl">
+          <button
+            onClick={() => handleTabClick("map")}
+            className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+              activeTab === "map"
+                ? "bg-neutral-700/80 text-white shadow-sm"
+                : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+            }`}
+          >
+            <Map size={18} />
+            <span className="hidden sm:inline">Mapa</span>
+          </button>
+          <button
+            onClick={() => handleTabClick("favourites")}
+            className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+              activeTab === "favourites"
+                ? "bg-neutral-700/80 text-white shadow-sm"
+                : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+            }`}
+          >
+            <Heart size={18} />
+            <span className="hidden sm:inline">Oblíbené</span>
+          </button>
+          <button
+            onClick={() => handleTabClick("list")}
+            className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+              activeTab === "list"
+                ? "bg-neutral-700/80 text-white shadow-sm"
+                : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+            }`}
+          >
+            <List size={18} />
+            <span className="hidden sm:inline">Seznam</span>
+          </button>
         </div>
 
-        {/* Vyhledávání a přepínač */}
+        {/* Vyhledávání a přepínač - stejná šířka jako taby */}
         <div className="flex items-center gap-3 w-full">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -183,12 +177,12 @@ export default function TopNavigation({
       </div>
 
       {/* Ikonka uživatele úplně vpravo */}
-      <div ref={profileMenuRef} className="flex items-center gap-3 order-2 md:order-3 flex-1 justify-end relative">
+      <div ref={profileMenuRef} className="flex items-center gap-3 flex-1 justify-end relative pt-1">
 
         <button 
           onClick={() => session ? setIsProfileMenuOpen(!isProfileMenuOpen) : signIn()}
           title={session ? `Profil (${session.user?.name})` : "Přihlásit se"}
-          className={`w-11 h-11 rounded-full bg-neutral-800/60 backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-xl order-2 md:order-3 z-10 ${
+          className={`w-11 h-11 rounded-full bg-neutral-800/60 backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-xl z-10 ${
             session 
               ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10' 
               : 'border-white/10 text-neutral-400 hover:text-white hover:bg-neutral-700/50'
