@@ -85,13 +85,18 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
   };
 
   return (
-    <div className="w-full h-full flex flex-col md:flex-row relative">
+    <div className="w-full h-full flex flex-col md:flex-row relative min-h-0 overflow-hidden">
       {/* Container for Map */}
-      <div className="flex-1 h-full relative">
+      <div className="flex-1 h-full relative min-h-0 overflow-hidden">
         {/* Hlavní navigace plovoucí nad mapou */}
         <div className="absolute top-0 left-0 w-full z-50 pointer-events-none p-4 md:p-6">
           <div className="pointer-events-auto w-full max-w-7xl mx-auto">
-            <TopNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+            <TopNavigation 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              restaurants={restaurants}
+              onRestaurantSelect={(r) => setSelectedRestaurant(r)}
+            />
           </div>
         </div>
 

@@ -19,6 +19,16 @@ function MapResizer() {
   return null;
 }
 
+function SelectedRestaurantPan({ selectedRestaurant }: { selectedRestaurant?: Restaurant | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (selectedRestaurant && selectedRestaurant.latitude && selectedRestaurant.longitude) {
+      map.flyTo([selectedRestaurant.latitude, selectedRestaurant.longitude], 16, { animate: true, duration: 1.5 });
+    }
+  }, [selectedRestaurant, map]);
+  return null;
+}
+
 function LocationMarker() {
   const map = useMap();
   const [position, setPosition] = useState<L.LatLng | null>(null);
@@ -93,6 +103,7 @@ export default function Map({
       >
         <MapResizer />
         <LocationMarker />
+        <SelectedRestaurantPan selectedRestaurant={selectedRestaurant} />
         
         {/* Nádherné Dark Theme mapové podklady od CartoDB */}
         <TileLayer
