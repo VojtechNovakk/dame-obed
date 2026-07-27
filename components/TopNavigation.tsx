@@ -87,7 +87,7 @@ export default function TopNavigation({
 
   const handleTabClick = (tab: string) => {
     if (tab === "favourites" && !session) {
-      signIn();
+      router.push('/login');
       return;
     }
     
@@ -260,7 +260,7 @@ export default function TopNavigation({
       <div ref={profileMenuRef} className="flex items-center gap-3 md:flex-1 justify-end relative pt-1 order-2 md:order-3">
 
         <button 
-          onClick={() => session ? setIsProfileMenuOpen(!isProfileMenuOpen) : signIn()}
+          onClick={() => session ? setIsProfileMenuOpen(!isProfileMenuOpen) : router.push('/login')}
           title={session ? `Profil (${session.user?.name})` : "Přihlásit se"}
           className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-neutral-800/60 backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-xl z-10 ${
             session 
