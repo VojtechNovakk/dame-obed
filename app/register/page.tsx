@@ -1,5 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import RegisterForm from "@/components/auth/RegisterForm";
+
+export const metadata: Metadata = {
+  title: "Registrace",
+  description:
+    "Vytvořte si účet Dáme Oběd a získejte přístup k personalizovaným funkcím.",
+};
 
 export default function RegisterPage() {
   return (

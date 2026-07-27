@@ -1,5 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import LoginForm from "@/components/auth/LoginForm";
+
+export const metadata: Metadata = {
+  title: "Přihlášení",
+  description:
+    "Přihlaste se ke svému účtu Dáme Oběd a ukládejte si oblíbené restaurace.",
+};
 
 export default function LoginPage() {
   return (
