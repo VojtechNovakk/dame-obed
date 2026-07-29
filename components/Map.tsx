@@ -23,7 +23,7 @@ function SelectedRestaurantPan({ selectedRestaurant }: { selectedRestaurant?: Re
   const map = useMap();
   useEffect(() => {
     if (selectedRestaurant && selectedRestaurant.latitude && selectedRestaurant.longitude) {
-      map.flyTo([selectedRestaurant.latitude, selectedRestaurant.longitude], 16, { animate: true, duration: 1.5 });
+      map.flyTo([selectedRestaurant.latitude, selectedRestaurant.longitude], 18, { animate: true, duration: 1.5 });
     }
   }, [selectedRestaurant, map]);
   return null;
@@ -34,11 +34,11 @@ function LocationMarker() {
   const [position, setPosition] = useState<L.LatLng | null>(null);
 
   useEffect(() => {
-    map.locate({ setView: false, maxZoom: 16 });
+    map.locate({ setView: false, maxZoom: 18 });
 
     const handleLocationFound = (e: L.LocationEvent) => {
       setPosition(e.latlng);
-      map.flyTo(e.latlng, 14, { animate: true, duration: 1.5 });
+      map.flyTo(e.latlng, 16, { animate: true, duration: 1.5 });
     };
 
     const handleLocationError = (e: L.ErrorEvent) => {
@@ -65,11 +65,11 @@ function LocationMarker() {
   );
 }
 
-export default function Map({ 
-  restaurants = [], 
+export default function Map({
+  restaurants = [],
   selectedRestaurant,
-  onRestaurantClick 
-}: { 
+  onRestaurantClick
+}: {
   restaurants?: Restaurant[],
   selectedRestaurant?: Restaurant | null,
   onRestaurantClick?: (restaurant: Restaurant) => void
@@ -89,14 +89,14 @@ export default function Map({
   });
 
   // Výchozí pozice (Praha) se použije, pokud mapa nemá žádné restaurace k vycentrování
-  const defaultPosition: [number, number] = [50.0755, 14.4378];
+  const defaultPosition: [number, number] = [50.0855, 14.4178];
 
   return (
     <div className="w-full h-full relative z-0">
-      <MapContainer 
-        center={defaultPosition} 
-        zoom={13} 
-        scrollWheelZoom={true} 
+      <MapContainer
+        center={defaultPosition}
+        zoom={16}
+        scrollWheelZoom={true}
         style={{ height: "100%", width: "100%" }}
         className="z-0 h-full w-full"
         zoomControl={false} // Schováme výchozí ovládání zoomu pro čistší vzhled, můžeme ho přidat jinam
@@ -104,24 +104,24 @@ export default function Map({
         <MapResizer />
         <LocationMarker />
         <SelectedRestaurantPan selectedRestaurant={selectedRestaurant} />
-        
+
         {/* Nádherné Dark Theme mapové podklady od CartoDB */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
-        
+
         {/* Vykreslení všech restaurací z databáze */}
         {restaurants.map((restaurant) => {
           // Pokud restaurace ještě nemá GPS souřadnice, přeskočíme ji
           if (!restaurant.latitude || !restaurant.longitude) return null;
-          
+
           // Vybereme správnou ikonku podle toho, jestli je tohle ta vybraná
           const isSelected = selectedRestaurant?.restaurant_id === restaurant.restaurant_id;
 
           return (
-            <Marker 
-              key={restaurant.restaurant_id} 
+            <Marker
+              key={restaurant.restaurant_id}
               position={[restaurant.latitude, restaurant.longitude]}
               icon={isSelected ? currentPingIcon : customPingIcon}
               zIndexOffset={isSelected ? 1000 : 0} // Dáme vybranou ikonku úplně navrch

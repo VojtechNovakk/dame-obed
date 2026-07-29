@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import { Analytics } from '@vercel/analytics/next';
+import SuggestForm from "@/components/SuggestForm";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -107,6 +108,7 @@ export default function RootLayout({
         />
         <SessionProviderWrapper>
           {children}
+          <SuggestForm mailTo={process.env.MAIL_TO} />
         </SessionProviderWrapper>
         <Analytics />
       </body>
