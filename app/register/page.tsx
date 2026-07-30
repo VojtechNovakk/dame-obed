@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "Registrace",
   description:
     "Vytvořte si účet Dáme Oběd a získejte přístup k personalizovaným funkcím.",
+  robots: {
+    index: false,
+    follow: true,
+  }
 };
 
 export default function RegisterPage() {

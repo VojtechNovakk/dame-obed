@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
 import MapWrapper from "./MapWrapper";
 import { X, Clock, MapPin, ExternalLink, Heart } from "lucide-react";
 import { getMenu, addFavourite, removeFavourite } from "@/lib/actions";
+import { slugify } from "@/lib/utils";
 
 import type { Restaurant, MenuMeal, TodayMealsMap } from '@/lib/types';
 import TopNavigation from "./TopNavigation";
 import RestaurantList from "./RestaurantList";
 
-export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [], todayMealsMap = {} }: { restaurants: Restaurant[], initialFavouriteIds?: number[], todayMealsMap?: TodayMealsMap }) {
+export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [], todayMealsMap = {}, initialRestaurantId }: { restaurants: Restaurant[], initialFavouriteIds?: number[], todayMealsMap?: TodayMealsMap, initialRestaurantId?: number }) {
   const { data: session } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
   const [favouriteIds, setFavouriteIds] = useState<number[]>(initialFavouriteIds);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
 
@@ -20,7 +24,13 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
     setTimeout(() => setToast(null), 3500);
   };
 
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(() => {
+    if (!initialRestaurantId) {
+      return null;
+    }
+
+    return restaurants.find((r) => r.restaurant_id === initialRestaurantId) ?? null;
+  });
   const [allMeals, setAllMeals] = useState<MenuMeal[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
@@ -45,6 +55,37 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
       .catch((err) => console.error(err))
       .finally(() => setIsLoadingMenu(false));
   }, [selectedRestaurant]);
+
+  // Synchronizace vybrané restaurace do URL pomocí History API (zamezuje re-renderu a probliknutí mapy)
+  useEffect(() => {
+    const selectedPath = selectedRestaurant ? `/restaurace/${selectedRestaurant.restaurant_id}-${slugify(selectedRestaurant.name)}` : "/";
+
+    if (window.location.pathname !== selectedPath) {
+      window.history.pushState(null, '', selectedPath);
+    }
+  }, [selectedRestaurant]);
+
+  // Podpora pro tlačítka Zpět/Vpřed v prohlížeči
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path.startsWith('/restaurace/')) {
+        const idSlug = path.replace('/restaurace/', '');
+        const idMatch = idSlug.match(/^(\d+)-/);
+        if (idMatch) {
+          const id = parseInt(idMatch[1], 10);
+          const found = restaurants.find(r => r.restaurant_id === id);
+          if (found) setSelectedRestaurant(found);
+        } else {
+          setSelectedRestaurant(null);
+        }
+      } else {
+        setSelectedRestaurant(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [restaurants]);
 
   // Vytažení unikátních datumů z dat
   const uniqueDates = Array.from(new Set(allMeals.map((meal) => new Date(meal.valid_for_date).toDateString())));

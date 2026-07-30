@@ -48,11 +48,6 @@ export async function registerUser(formData: FormData) {
     }
 
     try {
-        const existing = await query<{ user_id: number }>('SELECT user_id FROM users WHERE email = $1 OR username = $2', [email, username]);
-        if (existing.rows.length > 0) {
-            return { error: "Uživatel s tímto e-mailem nebo jménem už existuje." };
-        }
-
         const hashedPassword = await bcrypt.hash(password, 10);
         await query(
             'INSERT INTO users (email, username, password) VALUES ($1, $2, $3)', 
@@ -60,7 +55,12 @@ export async function registerUser(formData: FormData) {
         );
 
         return { success: true };
-    } catch (err) {
+    } catch (err: unknown) {
+        const error = err as { code?: string };
+        if (error.code === '23505') {
+            return { error: "Uživatel s tímto e-mailem nebo jménem už existuje." };
+        }
+
         console.error(err);
         return { error: "Došlo k chybě při registraci. Zkuste to prosím znovu." };
     }

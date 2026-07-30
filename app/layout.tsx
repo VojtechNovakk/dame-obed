@@ -108,7 +108,7 @@ export default function RootLayout({
         />
         <SessionProviderWrapper>
           {children}
-          <SuggestForm mailTo={process.env.MAIL_TO} />
+          <SuggestForm />
         </SessionProviderWrapper>
         <Analytics />
       </body>

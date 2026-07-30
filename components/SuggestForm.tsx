@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { sendSuggestion } from "@/app/actions/suggest";
 
-export default function SuggestForm({ mailTo = "info@dame-obed.cz" }: { mailTo?: string }) {
+export default function SuggestForm() {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");

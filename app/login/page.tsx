@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "Přihlášení",
   description:
     "Přihlaste se ke svému účtu Dáme Oběd a ukládejte si oblíbené restaurace.",
+  robots: {
+    index: false,
+    follow: true,
+  }
 };
 
 export default function LoginPage() {

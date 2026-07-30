@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition, useRef } from "react";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { User, Map, Heart, List, Search, LogOut, Loader2, X } from "lucide-react";
 import type { Restaurant } from '@/lib/types';
@@ -53,7 +53,6 @@ export default function TopNavigation({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchTerm(currentSearch);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsTodayOnly(currentToday);
   }, [currentSearch, currentToday]);
 

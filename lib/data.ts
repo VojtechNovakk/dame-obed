@@ -5,7 +5,7 @@ export async function getAllRestaurants(): Promise<Restaurant[]> {
     try {
         const result = await query<Restaurant>('SELECT restaurant_id, name, address, url, latitude, longitude FROM restaurants');
         return result.rows;
-    } catch (e) {
+    } catch {
         console.warn("Database connection failed, returning mock data for restaurants.");
         return [];
     }
@@ -15,7 +15,7 @@ export async function getFavouriteIds(userId: number): Promise<number[]> {
     try {
         const result = await query<{ restaurant_id: number }>('SELECT restaurant_id FROM favourites WHERE user_id = $1', [userId]);
         return result.rows.map(row => row.restaurant_id);
-    } catch (e) {
+    } catch {
         return [];
     }
 }
@@ -35,7 +35,7 @@ export async function getTodayMealsMap(): Promise<TodayMealsMap> {
             todayMealsMap[row.restaurant_id] = row.meals;
         }
         return todayMealsMap;
-    } catch (e) {
+    } catch {
         console.warn("Database connection failed, returning empty meals map.");
         return {};
     }

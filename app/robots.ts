@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/login", "/register"],
+        disallow: ["/api/"],
       },
     ],
     sitemap: "https://www.dame-obed.cz/sitemap.xml",
