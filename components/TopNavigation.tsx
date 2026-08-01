@@ -3,19 +3,23 @@
 import { useState, useEffect, useTransition, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { User, Map, Heart, List, Search, LogOut, Loader2, X } from "lucide-react";
+import { User, Map, Heart, List, Search, LogOut, Loader2, X, MapPin } from "lucide-react";
 import type { Restaurant } from '@/lib/types';
 
 export default function TopNavigation({
   activeTab,
   onTabChange,
   restaurants = [],
-  onRestaurantSelect
+  onRestaurantSelect,
+  maxDistance,
+  onMaxDistanceChange
 }: {
   activeTab: string;
   onTabChange: (tab: string) => void;
   restaurants?: Restaurant[];
   onRestaurantSelect?: (restaurant: Restaurant) => void;
+  maxDistance?: number;
+  onMaxDistanceChange?: (dist: number) => void;
 }) {
   const { data: session } = useSession();
   
@@ -253,6 +257,32 @@ export default function TopNavigation({
             </button>
           </div>
         </div>
+
+        {/* Vzdálenost slider (Menší, horizontální, globální pro všechny taby) */}
+        {maxDistance !== undefined && onMaxDistanceChange && (
+          <div className="flex items-center gap-2 sm:gap-3 px-3 py-1.5 mt-0.5 bg-neutral-800/60 backdrop-blur-xl rounded-xl border border-white/5 shadow-sm">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <MapPin size={14} className="text-emerald-400" />
+              <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 whitespace-nowrap w-[70px] sm:w-[80px]">
+                {maxDistance === 0 
+                  ? 'Bez omezení' 
+                  : maxDistance < 1 
+                    ? `Do ${Math.round(maxDistance * 1000)} m` 
+                    : `Do ${maxDistance.toFixed(1).replace('.', ',')} km`
+                }
+              </span>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="3" 
+              step="0.1"
+              value={maxDistance} 
+              onChange={(e) => onMaxDistanceChange(Number(e.target.value))}
+              className="flex-1 h-1 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 focus:outline-none transition-all"
+            />
+          </div>
+        )}
       </div>
 
       {/* Ikonka uživatele úplně vpravo */}

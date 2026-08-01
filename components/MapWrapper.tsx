@@ -16,17 +16,23 @@ const DynamicMap = dynamic(() => import('./Map'), {
 export default function MapWrapper({ 
   restaurants = [], 
   selectedRestaurant,
-  onRestaurantClick
+  onRestaurantClick,
+  userLocation,
+  maxDistance
 }: { 
   restaurants?: Restaurant[],
   selectedRestaurant?: Restaurant | null,
-  onRestaurantClick?: (restaurant: Restaurant) => void
+  onRestaurantClick?: (restaurant: Restaurant) => void,
+  userLocation?: { lat: number, lng: number } | null,
+  maxDistance?: number
 }) {
   return (
     <DynamicMap 
       restaurants={restaurants} 
       selectedRestaurant={selectedRestaurant}
       onRestaurantClick={onRestaurantClick} 
+      userLocation={userLocation}
+      maxDistance={maxDistance}
     />
   );
 }

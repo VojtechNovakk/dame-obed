@@ -1,9 +1,9 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Circle, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { Restaurant } from '@/lib/types';
 
 function MapResizer() {
@@ -29,30 +29,18 @@ function SelectedRestaurantPan({ selectedRestaurant }: { selectedRestaurant?: Re
   return null;
 }
 
-function LocationMarker() {
+function UserLocationFeature({ userLocation, maxDistance }: { userLocation?: { lat: number, lng: number } | null, maxDistance?: number }) {
   const map = useMap();
-  const [position, setPosition] = useState<L.LatLng | null>(null);
+  const hasFlown = useRef(false);
 
   useEffect(() => {
-    map.locate({ setView: false, maxZoom: 18 });
+    if (userLocation && !hasFlown.current) {
+      map.flyTo([userLocation.lat, userLocation.lng], 14, { animate: true, duration: 1.5 });
+      hasFlown.current = true;
+    }
+  }, [userLocation, map]);
 
-    const handleLocationFound = (e: L.LocationEvent) => {
-      setPosition(e.latlng);
-      map.flyTo(e.latlng, 16, { animate: true, duration: 1.5 });
-    };
-
-    const handleLocationError = (e: L.ErrorEvent) => {
-      console.log("Geolokace selhala nebo byla zamítnuta: ", e.message);
-    };
-
-    map.on('locationfound', handleLocationFound);
-    map.on('locationerror', handleLocationError);
-
-    return () => {
-      map.off('locationfound', handleLocationFound);
-      map.off('locationerror', handleLocationError);
-    };
-  }, [map]);
+  if (!userLocation) return null;
 
   const userIcon = new L.Icon({
     iconUrl: '/user_pos.png',
@@ -60,19 +48,32 @@ function LocationMarker() {
     iconAnchor: [12, 12],
   });
 
-  return position === null ? null : (
-    <Marker position={position} icon={userIcon} />
+  return (
+    <>
+      <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} zIndexOffset={500} />
+      {maxDistance && maxDistance > 0 ? (
+        <Circle 
+          center={[userLocation.lat, userLocation.lng]} 
+          radius={maxDistance * 1000}
+          pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.1, weight: 2, dashArray: '5, 5' }}
+        />
+      ) : null}
+    </>
   );
 }
 
 export default function Map({
   restaurants = [],
   selectedRestaurant,
-  onRestaurantClick
+  onRestaurantClick,
+  userLocation,
+  maxDistance
 }: {
   restaurants?: Restaurant[],
   selectedRestaurant?: Restaurant | null,
-  onRestaurantClick?: (restaurant: Restaurant) => void
+  onRestaurantClick?: (restaurant: Restaurant) => void,
+  userLocation?: { lat: number, lng: number } | null,
+  maxDistance?: number
 }) {
 
   const customPingIcon = new L.Icon({
@@ -102,7 +103,7 @@ export default function Map({
         zoomControl={false} // Schováme výchozí ovládání zoomu pro čistší vzhled, můžeme ho přidat jinam
       >
         <MapResizer />
-        <LocationMarker />
+        <UserLocationFeature userLocation={userLocation} maxDistance={maxDistance} />
         <SelectedRestaurantPan selectedRestaurant={selectedRestaurant} />
 
         {/* Nádherné Dark Theme mapové podklady od CartoDB */}

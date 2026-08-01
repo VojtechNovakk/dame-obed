@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import MapWrapper from "./MapWrapper";
 import { X, Clock, MapPin, ExternalLink, Heart } from "lucide-react";
 import { getMenu, addFavourite, removeFavourite } from "@/lib/actions";
-import { slugify } from "@/lib/utils";
+import { slugify, getDistanceInKm } from "@/lib/utils";
 
 import type { Restaurant, MenuMeal, TodayMealsMap } from '@/lib/types';
 import TopNavigation from "./TopNavigation";
@@ -15,6 +15,28 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
   const { data: session } = useSession();
   const [favouriteIds, setFavouriteIds] = useState<number[]>(initialFavouriteIds);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+  const [maxDistance, setMaxDistance] = useState<number>(0);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => console.log("Geolokace selhala: ", err),
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+  }, []);
+
+  const filteredRestaurants = useMemo(() => {
+    if (!userLocation || maxDistance === 0) return restaurants;
+    return restaurants.filter(r => {
+      if (!r.latitude || !r.longitude) return false;
+      const d = getDistanceInKm(userLocation.lat, userLocation.lng, r.latitude, r.longitude);
+      return d <= maxDistance;
+    });
+  }, [restaurants, userLocation, maxDistance]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
@@ -155,31 +177,35 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
             <TopNavigation 
               activeTab={activeTab} 
               onTabChange={setActiveTab} 
-              restaurants={restaurants}
+              restaurants={filteredRestaurants}
               onRestaurantSelect={(r) => setSelectedRestaurant(r)}
+              maxDistance={userLocation ? maxDistance : undefined}
+              onMaxDistanceChange={setMaxDistance}
             />
           </div>
         </div>
 
         {activeTab === "list" ? (
           <RestaurantList 
-            restaurants={restaurants} 
+            restaurants={filteredRestaurants} 
             onRestaurantClick={(r) => setSelectedRestaurant(r)} 
-            emptyMessage={restaurants.length === 0 ? "Žádné restaurace neodpovídají vašemu vyhledávání." : undefined}
+            emptyMessage={filteredRestaurants.length === 0 ? "Žádné restaurace neodpovídají vašemu vyhledávání nebo zvolené vzdálenosti." : undefined}
             todayMealsMap={todayMealsMap}
           />
         ) : activeTab === "favourites" ? (
           <RestaurantList 
-            restaurants={restaurants.filter(r => favouriteIds.includes(r.restaurant_id))} 
+            restaurants={filteredRestaurants.filter(r => favouriteIds.includes(r.restaurant_id))} 
             onRestaurantClick={(r) => setSelectedRestaurant(r)} 
             emptyMessage={favouriteIds.length === 0 ? "Zatím nemáte žádné oblíbené restaurace. Přidejte si je kliknutím na srdíčko v detailu restaurace." : "Vašemu vyhledávání neodpovídají žádné z vašich oblíbených restaurací."}
             todayMealsMap={todayMealsMap}
           />
         ) : (
           <MapWrapper 
-            restaurants={restaurants} 
+            restaurants={filteredRestaurants} 
             selectedRestaurant={selectedRestaurant}
             onRestaurantClick={(r) => setSelectedRestaurant(r)}
+            userLocation={userLocation}
+            maxDistance={maxDistance}
           />
         )}
       </div>
