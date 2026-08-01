@@ -3,15 +3,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import MapWrapper from "./MapWrapper";
-import { X, Clock, MapPin, ExternalLink, Heart } from "lucide-react";
+import { X, Clock, MapPin, ExternalLink, Heart, Star } from "lucide-react";
 import { getMenu, addFavourite, removeFavourite } from "@/lib/actions";
 import { slugify, getDistanceInKm } from "@/lib/utils";
 
-import type { Restaurant, MenuMeal, TodayMealsMap } from '@/lib/types';
+import type { Restaurant, MenuMeal, TodayMealsMap, RatingsMap } from '@/lib/types';
 import TopNavigation from "./TopNavigation";
 import RestaurantList from "./RestaurantList";
+import RestaurantReviews from "./RestaurantReviews";
 
-export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [], todayMealsMap = {}, initialRestaurantId }: { restaurants: Restaurant[], initialFavouriteIds?: number[], todayMealsMap?: TodayMealsMap, initialRestaurantId?: number }) {
+export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [], todayMealsMap = {}, ratingsMap = {}, initialRestaurantId }: { restaurants: Restaurant[], initialFavouriteIds?: number[], todayMealsMap?: TodayMealsMap, ratingsMap?: RatingsMap, initialRestaurantId?: number }) {
   const { data: session } = useSession();
   const [favouriteIds, setFavouriteIds] = useState<number[]>(initialFavouriteIds);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
@@ -238,7 +239,16 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
           </button>
 
           <div className="p-6 pt-20 md:pt-24 overflow-y-auto flex-1 custom-scrollbar">
-            <h2 className="text-2xl font-bold text-white mb-2">{selectedRestaurant?.name}</h2>
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <h2 className="text-2xl font-bold text-white leading-tight">{selectedRestaurant?.name}</h2>
+              {selectedRestaurant && ratingsMap[selectedRestaurant.restaurant_id] && (
+                <div className="flex items-center gap-1.5 shrink-0 bg-yellow-400/10 px-2 py-1 rounded-lg border border-yellow-400/20">
+                  <Star size={16} className="fill-yellow-400 text-yellow-400" />
+                  <span className="text-yellow-400 font-bold text-sm">{ratingsMap[selectedRestaurant.restaurant_id].avg_stars}</span>
+                  <span className="text-yellow-400/60 text-xs">({ratingsMap[selectedRestaurant.restaurant_id].count})</span>
+                </div>
+              )}
+            </div>
             
             <div className="flex items-start gap-2 text-neutral-400 text-sm mb-6">
               <MapPin size={16} className="mt-0.5 flex-shrink-0" />
@@ -301,6 +311,8 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
                 </div>
               )}
             </div>
+
+            {selectedRestaurant && <RestaurantReviews restaurantId={selectedRestaurant.restaurant_id} />}
 
             {selectedRestaurant?.url ? (
               <a 

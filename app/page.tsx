@@ -2,7 +2,7 @@ import InteractiveMapLayout from '@/components/InteractiveMapLayout';
 
 import { auth } from "@/auth";
 import { getTodayRestaurants, searchRestaurants, searchTodayRestaurants } from '@/lib/actions';
-import { getAllRestaurants, getFavouriteIds, getTodayMealsMap } from '@/lib/data';
+import { getAllRestaurants, getFavouriteIds, getTodayMealsMap, getRestaurantRatingsMap } from '@/lib/data';
 
 export default async function Home(props: { searchParams?: Promise<{ search?: string, today?: string }> }) {
   const searchParams = await props.searchParams;
@@ -31,6 +31,7 @@ export default async function Home(props: { searchParams?: Promise<{ search?: st
   }
 
   const todayMealsMap = await getTodayMealsMap();
+  const ratingsMap = await getRestaurantRatingsMap();
 
   return (
     <main className="h-[100dvh] w-screen bg-neutral-950 text-white selection:bg-emerald-500/30 flex flex-col overflow-hidden relative">
@@ -43,7 +44,7 @@ export default async function Home(props: { searchParams?: Promise<{ search?: st
 
       {/* Map Layout, který zabírá celý prostor */}
       <div className="flex-1 w-full relative z-0 min-h-0 overflow-hidden">
-        <InteractiveMapLayout restaurants={restaurants} initialFavouriteIds={favouriteIds} todayMealsMap={todayMealsMap} />
+        <InteractiveMapLayout restaurants={restaurants} initialFavouriteIds={favouriteIds} todayMealsMap={todayMealsMap} ratingsMap={ratingsMap} />
       </div>
 
     </main>

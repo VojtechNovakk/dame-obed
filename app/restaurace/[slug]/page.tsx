@@ -1,7 +1,7 @@
 import InteractiveMapLayout from '@/components/InteractiveMapLayout';
 import { auth } from "@/auth";
 import { getTodayRestaurants, searchRestaurants, searchTodayRestaurants } from '@/lib/actions';
-import { getAllRestaurants, getFavouriteIds, getTodayMealsMap } from '@/lib/data';
+import { getAllRestaurants, getFavouriteIds, getTodayMealsMap, getRestaurantRatingsMap } from '@/lib/data';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -83,6 +83,7 @@ export default async function RestaurantPage(
   }
 
   const todayMealsMap = await getTodayMealsMap();
+  const ratingsMap = await getRestaurantRatingsMap();
 
   // Získání ID z URL a validace (Soft-404 ochrana)
   const idMatch = params.slug.match(/^(\d+)-/);
@@ -145,6 +146,7 @@ export default async function RestaurantPage(
           restaurants={restaurants} 
           initialFavouriteIds={favouriteIds} 
           todayMealsMap={todayMealsMap} 
+          ratingsMap={ratingsMap}
           initialRestaurantId={id}
         />
       </div>

@@ -21,3 +21,13 @@ export interface MealSummary {
 }
 
 export type TodayMealsMap = Record<number, MealSummary[]>;
+
+export interface Review {
+  user_id: number;
+  restaurant_id: number;
+  stars: number;
+  review: string;
+  username?: string;
+}
+
+export type RatingsMap = Record<number, { avg_stars: number, count: number }>;

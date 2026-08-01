@@ -6,6 +6,13 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import type { Restaurant, MenuMeal } from './types';
 
+async function getAuthenticatedUserId() {
+    const session = await auth();
+    const userId = session?.user?.id ? parseInt(session.user.id) : null;
+
+    return typeof userId === "number" && Number.isInteger(userId) ? userId : null;
+}
+
 // Zod schema for registration validation
 const registerSchema = z.object({
     email: z.string().email("Zadejte platnou e-mailovou adresu."),
@@ -102,8 +109,7 @@ export async function getTodayRestaurants(): Promise<Restaurant[]> {
 
 export async function addFavourite(restaurantId: number) {
     try{
-        const session = await auth();
-        const userId = session?.user?.id ? parseInt(session.user.id) : null;
+        const userId = await getAuthenticatedUserId();
 
         if (!userId) {
             return { error: "Pro tuto akci se musíte přihlásit." };
@@ -119,8 +125,7 @@ export async function addFavourite(restaurantId: number) {
 
 export async function removeFavourite(restaurantId: number) {
     try{
-        const session = await auth();
-        const userId = session?.user?.id ? parseInt(session.user.id) : null;
+        const userId = await getAuthenticatedUserId();
 
         if (!userId) {
             return { error: "Pro tuto akci se musíte přihlásit." };
@@ -131,5 +136,52 @@ export async function removeFavourite(restaurantId: number) {
     }catch(err){
         console.error(err);
         return { error: "Došlo k chybě při odstraňování z oblíbených. Zkuste to prosím znovu." };
+    }
+}
+
+export async function addReview(restaurantId: number, stars: number, text: string) {
+    try {
+        const userId = await getAuthenticatedUserId();
+
+        if (!userId) {
+            return { error: "Pro přidání recenze se musíte přihlásit." };
+        }
+
+        if (stars < 1 || stars > 5) {
+            return { error: "Počet hvězdiček musí být mezi 1 a 5." };
+        }
+
+        await query(`
+            INSERT INTO reviews (user_id, restaurant_id, stars, review)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id, restaurant_id) DO UPDATE 
+            SET stars = EXCLUDED.stars, review = EXCLUDED.review
+        `, [userId, restaurantId, stars, text]);
+        
+        return { success: true };
+    } catch (err) {
+        console.error(err);
+        return { error: "Při ukládání recenze došlo k chybě. Zkuste to prosím znovu." };
+    }
+}
+
+export async function getReviewsAction(restaurantId: number) {
+    const { getRestaurantReviews } = await import('@/lib/data');
+    return await getRestaurantReviews(restaurantId);
+}
+export async function deleteReview(restaurantId: number) {
+    try {
+        const userId = await getAuthenticatedUserId();
+
+        if (!userId) {
+            return { error: "Pro odstranení recenze se musíte přihlásit." };
+        }
+
+        await query('DELETE FROM reviews WHERE user_id = $1 AND restaurant_id = $2', [userId, restaurantId]);
+        
+        return { success: true };
+    } catch (err) {
+        console.error(err);
+        return { error: "Při odstraňování recenze došlo k chybě. Zkuste to prosím znovu." };
     }
 }

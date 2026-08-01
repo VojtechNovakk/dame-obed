@@ -48,4 +48,15 @@ ALTER TABLE favourites ADD CONSTRAINT pk_favourites PRIMARY KEY (user_id, restau
 ALTER TABLE favourites ADD CONSTRAINT fk_favourites_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE;
 ALTER TABLE favourites ADD CONSTRAINT fk_favourites_restaurants FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id) ON DELETE CASCADE;
 
+
+CREATE TABLE reviews(
+    user_id INT,
+    restaurant_id INT,
+    stars INT NOT NULL,
+    review TEXT
+);
+ALTER TABLE reviews ADD CONSTRAINT pk_reviews PRIMARY KEY (user_id, restaurant_id);
+ALTER TABLE reviews ADD CONSTRAINT fk_users FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE;
+ALTER TABLE reviews ADD CONSTRAINT fk_restaurants FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id) ON DELETE CASCADE;
+
 COMMIT;
