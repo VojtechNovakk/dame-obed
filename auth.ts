@@ -68,11 +68,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
       }
+      
+      // Kontrola, jestli uživatel stále existuje a shoduje se e-mail
+      // (Ochrana proti situaci, kdy se promaže DB a ID se přiřadí někomu jinému)
+      const userIdStr = (token.sub || token.id) as string;
+      if (userIdStr) {
+        try {
+          const userId = parseInt(userIdStr, 10);
+          const result = await query('SELECT email FROM users WHERE user_id = $1', [userId]);
+          
+          if (result.rows.length === 0 || (token.email && result.rows[0].email !== token.email)) {
+            // Uživatel neexistuje nebo nesedí e-mail -> zneplatníme session
+            delete token.id;
+            delete token.sub;
+            return {}; 
+          }
+        } catch (error) {
+          console.error("Chyba při validaci JWT:", error);
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
+      if (session.user) {
+        session.user.id = (token.sub || token.id) as string;
       }
       return session;
     }

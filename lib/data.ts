@@ -1,5 +1,5 @@
 import { query } from './db';
-import { Restaurant, MealSummary, TodayMealsMap } from './types';
+import { Restaurant, MealSummary, TodayMealsMap, RatingsMap, Review } from './types';
 
 export async function getAllRestaurants(): Promise<Restaurant[]> {
     try {
@@ -38,5 +38,39 @@ export async function getTodayMealsMap(): Promise<TodayMealsMap> {
     } catch {
         console.warn("Database connection failed, returning empty meals map.");
         return {};
+    }
+}
+
+export async function getRestaurantRatingsMap(): Promise<RatingsMap> {
+    try {
+        const result = await query<{ restaurant_id: number, avg_stars: string, count: string }>(`
+            SELECT restaurant_id, ROUND(AVG(stars), 1) as avg_stars, COUNT(stars) as count
+            FROM reviews
+            GROUP BY restaurant_id
+        `);
+        
+        const ratingsMap: RatingsMap = {};
+        for (const row of result.rows) {
+            ratingsMap[row.restaurant_id] = { avg_stars: Number(row.avg_stars), count: Number(row.count) };
+        }
+        return ratingsMap;
+    } catch {
+        return {};
+    }
+}
+
+export async function getRestaurantReviews(restaurantId: number): Promise<Review[]> {
+    try {
+        const result = await query<Review>(`
+            SELECT r.user_id, r.restaurant_id, r.stars, r.review, u.username
+            FROM reviews r
+            JOIN users u ON r.user_id = u.user_id
+            WHERE r.restaurant_id = $1
+            ORDER BY r.stars DESC
+        `, [restaurantId]);
+        return result.rows;
+    } catch (e) {
+        console.error("Failed to fetch reviews:", e);
+        return [];
     }
 }
