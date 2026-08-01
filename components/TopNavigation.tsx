@@ -184,7 +184,7 @@ export default function TopNavigation({
                 onFocus={() => {
                   if (mapSearchQuery.trim() !== "") setIsSearchDropdownOpen(true);
                 }}
-                className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 bg-neutral-900/80 backdrop-blur-xl border border-emerald-500/50 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500/70 transition-all shadow-xl"
+                className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 bg-neutral-900/80 backdrop-blur-xl border border-emerald-500/50 rounded-xl text-base text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500/70 transition-all shadow-xl"
               />
               {mapSearchQuery && (
                 <button 
@@ -227,7 +227,7 @@ export default function TopNavigation({
                 placeholder="Hledat podnik nebo jídlo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 bg-neutral-800/60 backdrop-blur-xl border border-white/10 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all shadow-xl"
+                className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 bg-neutral-800/60 backdrop-blur-xl border border-white/10 rounded-xl text-base text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all shadow-xl"
               />
               {isPending && (
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
