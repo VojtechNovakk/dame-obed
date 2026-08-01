@@ -2,7 +2,6 @@ import InteractiveMapLayout from '@/components/InteractiveMapLayout';
 import { auth } from "@/auth";
 import { getTodayRestaurants, searchRestaurants, searchTodayRestaurants } from '@/lib/actions';
 import { getAllRestaurants, getFavouriteIds, getTodayMealsMap } from '@/lib/data';
-import { slugify } from '@/lib/utils';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -91,13 +90,52 @@ export default async function RestaurantPage(
   
   // Kontrola, zda restaurace vůbec existuje v DB
   const allRestaurantsForCheck = await getAllRestaurants();
-  const exists = allRestaurantsForCheck.some(r => r.restaurant_id === id);
-  if (!exists) {
+  const restaurant = allRestaurantsForCheck.find(r => r.restaurant_id === id);
+  if (!restaurant) {
     notFound();
   }
 
+  const todayMeals = todayMealsMap[id] || [];
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    "name": restaurant.name,
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": restaurant.address,
+      "addressCountry": "CZ"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": restaurant.latitude,
+      "longitude": restaurant.longitude
+    },
+    "url": `https://www.dame-obed.cz/restaurace/${params.slug}`,
+    ...(restaurant.url ? { "sameAs": restaurant.url } : {}),
+    ...(todayMeals.length > 0 ? {
+      "hasMenu": {
+        "@type": "Menu",
+        "name": `Denní menu ${new Date().toLocaleDateString('cs-CZ')}`,
+        "hasMenuItem": todayMeals.map((meal) => ({
+          "@type": "MenuItem",
+          "name": meal.name,
+          "offers": {
+            "@type": "Offer",
+            "price": meal.price,
+            "priceCurrency": "CZK"
+          }
+        }))
+      }
+    } : {})
+  };
+
   return (
     <main className="h-[100dvh] w-screen bg-neutral-950 text-white selection:bg-emerald-500/30 flex flex-col overflow-hidden relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="absolute top-0 left-0 w-full z-50 pointer-events-none">
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[500px] bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none -z-10" />
       </div>
