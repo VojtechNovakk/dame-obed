@@ -104,7 +104,7 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
     const selectedPath = selectedRestaurant ? `/restaurace/${selectedRestaurant.restaurant_id}-${slugify(selectedRestaurant.name)}` : "/";
 
     if (window.location.pathname !== selectedPath) {
-      window.history.pushState(null, '', selectedPath);
+      window.history.pushState(null, '', selectedPath + window.location.search);
     }
   }, [selectedRestaurant]);
 
