@@ -15,8 +15,10 @@ CREATE TABLE restaurants(
     name          VARCHAR(255) NOT NULL,
     url           VARCHAR(255) NOT NULL,
     latitude      DECIMAL(9, 6) NOT NULL,
-    longitude     DECIMAL(9, 6) NOT NULL
+    longitude     DECIMAL(9, 6) NOT NULL,
+    menu_url      VARCHAR(255) NOT NULL
 );
+
 
 ALTER TABLE restaurants ADD CONSTRAINT pk_restaurants PRIMARY KEY (restaurant_id);
 
