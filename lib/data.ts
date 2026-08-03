@@ -3,7 +3,7 @@ import { Restaurant, MealSummary, TodayMealsMap, RatingsMap, Review } from './ty
 
 export async function getAllRestaurants(): Promise<Restaurant[]> {
     try {
-        const result = await query<Restaurant>('SELECT restaurant_id, name, address, url, latitude, longitude FROM restaurants');
+        const result = await query<Restaurant>('SELECT r.restaurant_id, r.name, r.address, r.url, r.latitude, r.longitude FROM restaurants r WHERE EXISTS (SELECT 1 FROM menus m WHERE m.restaurant_id = r.restaurant_id);');
         return result.rows;
     } catch {
         console.warn("Database connection failed, returning mock data for restaurants.");
