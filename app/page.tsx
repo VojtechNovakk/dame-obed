@@ -44,7 +44,13 @@ export default async function Home(props: { searchParams?: Promise<{ search?: st
 
       {/* Map Layout, který zabírá celý prostor */}
       <div className="flex-1 w-full relative z-0 min-h-0 overflow-hidden">
-        <InteractiveMapLayout restaurants={restaurants} initialFavouriteIds={favouriteIds} todayMealsMap={todayMealsMap} ratingsMap={ratingsMap} />
+        <InteractiveMapLayout 
+          restaurants={restaurants} 
+          initialFavouriteIds={favouriteIds} 
+          todayMealsMap={todayMealsMap} 
+          ratingsMap={ratingsMap} 
+          initialActiveTab={(search || isTodayOnly) ? "list" : "map"}
+        />
       </div>
 
     </main>
