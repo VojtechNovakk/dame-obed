@@ -107,6 +107,11 @@ export async function getTodayRestaurants(): Promise<Restaurant[]> {
     return result.rows;
 }
 
+export async function getAllRestaurants(): Promise<Restaurant[]> {
+    const { getAllRestaurants } = await import('@/lib/data');
+    return await getAllRestaurants();
+}
+
 export async function addFavourite(restaurantId: number) {
     try{
         const userId = await getAuthenticatedUserId();

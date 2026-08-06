@@ -148,6 +148,7 @@ export default async function RestaurantPage(
           todayMealsMap={todayMealsMap} 
           ratingsMap={ratingsMap}
           initialRestaurantId={id}
+          initialActiveTab={(search || isTodayOnly) ? "list" : "map"}
         />
       </div>
     </main>

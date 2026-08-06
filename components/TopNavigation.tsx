@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { User, Map, Heart, List, Search, LogOut, Loader2, X, MapPin } from "lucide-react";
 import type { Restaurant } from '@/lib/types';
 
@@ -12,7 +12,8 @@ export default function TopNavigation({
   restaurants = [],
   onRestaurantSelect,
   maxDistance,
-  onMaxDistanceChange
+  onMaxDistanceChange,
+  onSearchChange
 }: {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -20,11 +21,11 @@ export default function TopNavigation({
   onRestaurantSelect?: (restaurant: Restaurant) => void;
   maxDistance?: number;
   onMaxDistanceChange?: (dist: number) => void;
+  onSearchChange?: (search: string, isToday: boolean) => void;
 }) {
   const { data: session } = useSession();
   
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentSearch = searchParams.get("search") || "";
   const currentToday = searchParams.get("today") === "true";
@@ -66,27 +67,15 @@ export default function TopNavigation({
     if (searchTerm === currentSearch && isTodayOnly === currentToday) return;
 
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      
-      if (searchTerm) {
-        params.set("search", searchTerm);
-      } else {
-        params.delete("search");
-      }
-
-      if (isTodayOnly) {
-        params.set("today", "true");
-      } else {
-        params.delete("today");
-      }
-
       startTransition(() => {
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+        if (onSearchChange) {
+          onSearchChange(searchTerm, isTodayOnly);
+        }
       });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, isTodayOnly, currentSearch, currentToday, pathname, router, searchParams]);
+  }, [searchTerm, isTodayOnly, currentSearch, currentToday, onSearchChange]);
 
   const handleTabClick = (tab: string) => {
     if (tab === "favourites" && !session) {
@@ -99,12 +88,9 @@ export default function TopNavigation({
     setIsTodayOnly(false);
     
     // Clear URL parameters immediately
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("search");
-    params.delete("today");
-    startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    });
+    if (onSearchChange) {
+      onSearchChange("", false);
+    }
 
     onTabChange(tab);
   };

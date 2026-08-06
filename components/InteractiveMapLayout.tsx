@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import MapWrapper from "./MapWrapper";
 import { X, Clock, MapPin, ExternalLink, Heart, Star } from "lucide-react";
-import { getMenu, addFavourite, removeFavourite } from "@/lib/actions";
+import { getMenu, addFavourite, removeFavourite, searchRestaurants, searchTodayRestaurants, getTodayRestaurants, getAllRestaurants } from "@/lib/actions";
 import { slugify, getDistanceInKm } from "@/lib/utils";
 
 import type { Restaurant, MenuMeal, TodayMealsMap, RatingsMap } from '@/lib/types';
@@ -12,7 +12,13 @@ import TopNavigation from "./TopNavigation";
 import RestaurantList from "./RestaurantList";
 import RestaurantReviews from "./RestaurantReviews";
 
-export default function InteractiveMapLayout({ restaurants, initialFavouriteIds = [], todayMealsMap = {}, ratingsMap = {}, initialRestaurantId }: { restaurants: Restaurant[], initialFavouriteIds?: number[], todayMealsMap?: TodayMealsMap, ratingsMap?: RatingsMap, initialRestaurantId?: number }) {
+export default function InteractiveMapLayout({ restaurants: initialRestaurants, initialFavouriteIds = [], todayMealsMap = {}, ratingsMap = {}, initialRestaurantId, initialActiveTab = "map" }: { restaurants: Restaurant[], initialFavouriteIds?: number[], todayMealsMap?: TodayMealsMap, ratingsMap?: RatingsMap, initialRestaurantId?: number, initialActiveTab?: string }) {
+  const [restaurants, setRestaurants] = useState<Restaurant[]>(initialRestaurants);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRestaurants(initialRestaurants);
+  }, [initialRestaurants]);
   const { data: session } = useSession();
   const [favouriteIds, setFavouriteIds] = useState<number[]>(initialFavouriteIds);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
@@ -71,7 +77,7 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
     return null;
   });
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
-  const [activeTab, setActiveTab] = useState("map");
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
 
   useEffect(() => {
     if (!selectedRestaurant) {
@@ -182,6 +188,28 @@ export default function InteractiveMapLayout({ restaurants, initialFavouriteIds 
               onRestaurantSelect={(r) => setSelectedRestaurant(r)}
               maxDistance={userLocation ? maxDistance : undefined}
               onMaxDistanceChange={setMaxDistance}
+              onSearchChange={async (search, isToday) => {
+                // Update URL params without navigating
+                const params = new URLSearchParams(window.location.search);
+                if (search) params.set("search", search);
+                else params.delete("search");
+                if (isToday) params.set("today", "true");
+                else params.delete("today");
+                
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.replaceState(null, '', newUrl);
+
+                // Fetch new restaurants
+                let newRestaurants;
+                if (isToday) {
+                  if (search) newRestaurants = await searchTodayRestaurants(search);
+                  else newRestaurants = await getTodayRestaurants();
+                } else {
+                  if (search) newRestaurants = await searchRestaurants(search);
+                  else newRestaurants = await getAllRestaurants();
+                }
+                setRestaurants(newRestaurants);
+              }}
             />
           </div>
         </div>
