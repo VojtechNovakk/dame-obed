@@ -13,9 +13,12 @@ export async function searchAddresses(query: string): Promise<AddressResult[]> {
     },
   });
   const results = await provider.search({ query });
-  return results.slice(0, 5).map((result) => ({
-    label: result.label,
-    lat: result.y,
-    lon: result.x,
-  }));
+  return results
+    .slice(0, 5)
+    .map((result) => ({
+      label: result.label,
+      lat: result.y,
+      lon: result.x,
+    }))
+    .filter((result) => Number.isFinite(result.lat) && Number.isFinite(result.lon));
 }

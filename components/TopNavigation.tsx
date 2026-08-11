@@ -44,38 +44,41 @@ export default function TopNavigation({
   const searchRef = useRef<HTMLDivElement>(null);
   const [addressResults, setAddressResults] = useState<AddressResult[]>([]);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [lastSearchedQuery, setLastSearchedQuery] = useState<string | null>(null);
   const geocodeRequestIdRef = useRef(0);
 
+  // Adresu hledáme jen na explicitní akci uživatele (Enter / klik na ikonu),
+  // ne automaticky při psaní — viz zásady používání Nominatim API.
   useEffect(() => {
-    const query = mapSearchQuery.trim();
+    setAddressResults([]);
+    setIsGeocoding(false);
+    setLastSearchedQuery(null);
+  }, [mapSearchQuery]);
 
-    if (query.length < 3) {
-      setAddressResults([]);
-      setIsGeocoding(false);
-      return;
-    }
+  const handleAddressSearch = () => {
+    const query = mapSearchQuery.trim();
+    setIsSearchDropdownOpen(true);
+
+    if (query.length < 3) return;
 
     setIsGeocoding(true);
+    setLastSearchedQuery(query);
     const requestId = ++geocodeRequestIdRef.current;
 
-    const timer = setTimeout(() => {
-      searchAddresses(query)
-        .then((results) => {
-          if (geocodeRequestIdRef.current === requestId) {
-            setAddressResults(results);
-            setIsGeocoding(false);
-          }
-        })
-        .catch(() => {
-          if (geocodeRequestIdRef.current === requestId) {
-            setAddressResults([]);
-            setIsGeocoding(false);
-          }
-        });
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [mapSearchQuery]);
+    searchAddresses(query)
+      .then((results) => {
+        if (geocodeRequestIdRef.current === requestId) {
+          setAddressResults(results);
+          setIsGeocoding(false);
+        }
+      })
+      .catch(() => {
+        if (geocodeRequestIdRef.current === requestId) {
+          setAddressResults([]);
+          setIsGeocoding(false);
+        }
+      });
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -137,6 +140,13 @@ export default function TopNavigation({
     (r.address && r.address.toLowerCase().includes(mapSearchQuery.toLowerCase()))
   ).slice(0, 5);
 
+  const showNoResults =
+    filteredRestaurants.length === 0 &&
+    addressResults.length === 0 &&
+    !isGeocoding &&
+    lastSearchedQuery !== null &&
+    lastSearchedQuery === mapSearchQuery.trim();
+
   return (
     <nav className="w-full flex flex-wrap md:flex-nowrap justify-between items-start gap-4 z-50 relative pointer-events-auto">
       
@@ -193,12 +203,17 @@ export default function TopNavigation({
         <div className="flex items-center gap-2 sm:gap-3 w-full">
           {activeTab === 'map' ? (
             <div className="relative flex-1 min-w-0" ref={searchRef}>
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-emerald-400" />
-              </div>
+              <button
+                type="button"
+                onClick={handleAddressSearch}
+                title="Vyhledat adresu"
+                className="absolute inset-y-0 left-0 pl-3 flex items-center text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                <Search size={16} />
+              </button>
               <input
                 type="text"
-                placeholder="Hledat restauraci nebo adresu..."
+                placeholder="Hledat restauraci nebo adresu (Enter)..."
                 value={mapSearchQuery}
                 onChange={(e) => {
                   setMapSearchQuery(e.target.value);
@@ -206,6 +221,12 @@ export default function TopNavigation({
                 }}
                 onFocus={() => {
                   if (mapSearchQuery.trim() !== "") setIsSearchDropdownOpen(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddressSearch();
+                  }
                 }}
                 className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 bg-neutral-900/80 backdrop-blur-xl border border-emerald-500/50 rounded-xl text-base text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500/70 transition-all shadow-xl"
               />
@@ -222,7 +243,7 @@ export default function TopNavigation({
               )}
               {/* Dropdown */}
               {isSearchDropdownOpen && mapSearchQuery.trim() !== "" && (
-                filteredRestaurants.length > 0 || addressResults.length > 0 || !isGeocoding
+                filteredRestaurants.length > 0 || addressResults.length > 0 || showNoResults
               ) && (
                 <div className="absolute top-[110%] left-0 w-full bg-neutral-900/95 backdrop-blur-2xl border border-emerald-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                   {filteredRestaurants.map(r => (
@@ -242,9 +263,9 @@ export default function TopNavigation({
                       </div>
                     </button>
                   ))}
-                  {addressResults.map((a, i) => (
+                  {addressResults.map((a) => (
                     <button
-                      key={`address-${i}`}
+                      key={`address-${a.lat}-${a.lon}`}
                       onClick={() => {
                         setMapSearchQuery(a.label);
                         setIsSearchDropdownOpen(false);
@@ -255,7 +276,7 @@ export default function TopNavigation({
                       <p className="text-sm text-neutral-300 truncate">{a.label}</p>
                     </button>
                   ))}
-                  {filteredRestaurants.length === 0 && addressResults.length === 0 && !isGeocoding && (
+                  {showNoResults && (
                     <p className="px-4 py-3 text-sm text-neutral-500">Nic jsme nenašli.</p>
                   )}
                 </div>
