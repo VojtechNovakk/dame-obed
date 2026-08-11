@@ -5,12 +5,14 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { User, Map, Heart, List, Search, LogOut, Loader2, X, MapPin } from "lucide-react";
 import type { Restaurant } from '@/lib/types';
+import { searchAddresses, type AddressResult } from "@/lib/geocode";
 
 export default function TopNavigation({
   activeTab,
   onTabChange,
   restaurants = [],
   onRestaurantSelect,
+  onAddressSelect,
   maxDistance,
   onMaxDistanceChange,
   onSearchChange
@@ -19,6 +21,7 @@ export default function TopNavigation({
   onTabChange: (tab: string) => void;
   restaurants?: Restaurant[];
   onRestaurantSelect?: (restaurant: Restaurant) => void;
+  onAddressSelect?: (lat: number, lon: number) => void;
   maxDistance?: number;
   onMaxDistanceChange?: (dist: number) => void;
   onSearchChange?: (search: string, isToday: boolean) => void;
@@ -39,6 +42,40 @@ export default function TopNavigation({
   const [mapSearchQuery, setMapSearchQuery] = useState("");
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const [addressResults, setAddressResults] = useState<AddressResult[]>([]);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const geocodeRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    const query = mapSearchQuery.trim();
+
+    if (query.length < 3) {
+      setAddressResults([]);
+      setIsGeocoding(false);
+      return;
+    }
+
+    setIsGeocoding(true);
+    const requestId = ++geocodeRequestIdRef.current;
+
+    const timer = setTimeout(() => {
+      searchAddresses(query)
+        .then((results) => {
+          if (geocodeRequestIdRef.current === requestId) {
+            setAddressResults(results);
+            setIsGeocoding(false);
+          }
+        })
+        .catch(() => {
+          if (geocodeRequestIdRef.current === requestId) {
+            setAddressResults([]);
+            setIsGeocoding(false);
+          }
+        });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [mapSearchQuery]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -95,10 +132,10 @@ export default function TopNavigation({
     onTabChange(tab);
   };
 
-  const filteredRestaurants = mapSearchQuery.trim() === "" ? [] : (restaurants || []).filter(r => 
-    r.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) || 
+  const filteredRestaurants = mapSearchQuery.trim() === "" ? [] : (restaurants || []).filter(r =>
+    r.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
     (r.address && r.address.toLowerCase().includes(mapSearchQuery.toLowerCase()))
-  ).slice(0, 8);
+  ).slice(0, 5);
 
   return (
     <nav className="w-full flex flex-wrap md:flex-nowrap justify-between items-start gap-4 z-50 relative pointer-events-auto">
@@ -161,7 +198,7 @@ export default function TopNavigation({
               </div>
               <input
                 type="text"
-                placeholder="Hledat restauraci na mapě..."
+                placeholder="Hledat restauraci nebo adresu..."
                 value={mapSearchQuery}
                 onChange={(e) => {
                   setMapSearchQuery(e.target.value);
@@ -184,22 +221,43 @@ export default function TopNavigation({
                 </button>
               )}
               {/* Dropdown */}
-              {isSearchDropdownOpen && filteredRestaurants.length > 0 && (
+              {isSearchDropdownOpen && mapSearchQuery.trim() !== "" && (
+                filteredRestaurants.length > 0 || addressResults.length > 0 || !isGeocoding
+              ) && (
                 <div className="absolute top-[110%] left-0 w-full bg-neutral-900/95 backdrop-blur-2xl border border-emerald-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                   {filteredRestaurants.map(r => (
                     <button
-                      key={r.restaurant_id}
+                      key={`restaurant-${r.restaurant_id}`}
                       onClick={() => {
                         setMapSearchQuery(r.name);
                         setIsSearchDropdownOpen(false);
                         if (onRestaurantSelect) onRestaurantSelect(r);
                       }}
-                      className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                      className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 flex items-start gap-3"
                     >
-                      <p className="text-sm font-semibold text-white truncate">{r.name}</p>
-                      <p className="text-xs text-neutral-400 truncate">{r.address || "Adresa neznámá"}</p>
+                      <MapPin size={16} className="text-emerald-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{r.name}</p>
+                        <p className="text-xs text-neutral-400 truncate">{r.address || "Adresa neznámá"}</p>
+                      </div>
                     </button>
                   ))}
+                  {addressResults.map((a, i) => (
+                    <button
+                      key={`address-${i}`}
+                      onClick={() => {
+                        setMapSearchQuery(a.label);
+                        setIsSearchDropdownOpen(false);
+                        if (onAddressSelect) onAddressSelect(a.lat, a.lon);
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                    >
+                      <p className="text-sm text-neutral-300 truncate">{a.label}</p>
+                    </button>
+                  ))}
+                  {filteredRestaurants.length === 0 && addressResults.length === 0 && !isGeocoding && (
+                    <p className="px-4 py-3 text-sm text-neutral-500">Nic jsme nenašli.</p>
+                  )}
                 </div>
               )}
             </div>
