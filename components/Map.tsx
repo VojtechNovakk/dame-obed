@@ -29,6 +29,16 @@ function SelectedRestaurantPan({ selectedRestaurant }: { selectedRestaurant?: Re
   return null;
 }
 
+function FlyToLocation({ flyToLocation }: { flyToLocation?: { lat: number; lon: number } | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (flyToLocation) {
+      map.flyTo([flyToLocation.lat, flyToLocation.lon], 17, { animate: true, duration: 1.5 });
+    }
+  }, [flyToLocation, map]);
+  return null;
+}
+
 function UserLocationFeature({ userLocation, maxDistance }: { userLocation?: { lat: number, lng: number } | null, maxDistance?: number }) {
   const map = useMap();
   const hasFlown = useRef(false);
@@ -67,13 +77,15 @@ export default function Map({
   selectedRestaurant,
   onRestaurantClick,
   userLocation,
-  maxDistance
+  maxDistance,
+  flyToLocation
 }: {
   restaurants?: Restaurant[],
   selectedRestaurant?: Restaurant | null,
   onRestaurantClick?: (restaurant: Restaurant) => void,
   userLocation?: { lat: number, lng: number } | null,
-  maxDistance?: number
+  maxDistance?: number,
+  flyToLocation?: { lat: number, lon: number } | null
 }) {
 
   const customPingIcon = new L.Icon({
@@ -105,6 +117,7 @@ export default function Map({
         <MapResizer />
         <UserLocationFeature userLocation={userLocation} maxDistance={maxDistance} />
         <SelectedRestaurantPan selectedRestaurant={selectedRestaurant} />
+        <FlyToLocation flyToLocation={flyToLocation} />
 
         {/* Nádherné Dark Theme mapové podklady od CartoDB */}
         <TileLayer
