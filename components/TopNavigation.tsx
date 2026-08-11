@@ -50,6 +50,7 @@ export default function TopNavigation({
   // Adresu hledáme jen na explicitní akci uživatele (Enter / klik na ikonu),
   // ne automaticky při psaní — viz zásady používání Nominatim API.
   useEffect(() => {
+    geocodeRequestIdRef.current++;
     setAddressResults([]);
     setIsGeocoding(false);
     setLastSearchedQuery(null);
