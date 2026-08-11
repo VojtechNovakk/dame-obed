@@ -25,6 +25,7 @@ export default function InteractiveMapLayout({ restaurants: initialRestaurants, 
 
   const [maxDistance, setMaxDistance] = useState<number>(0);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [flyToLocation, setFlyToLocation] = useState<{ lat: number; lon: number } | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && navigator.geolocation) {
@@ -186,6 +187,7 @@ export default function InteractiveMapLayout({ restaurants: initialRestaurants, 
               onTabChange={setActiveTab} 
               restaurants={filteredRestaurants}
               onRestaurantSelect={(r) => setSelectedRestaurant(r)}
+              onAddressSelect={(lat, lon) => setFlyToLocation({ lat, lon })}
               maxDistance={userLocation ? maxDistance : undefined}
               onMaxDistanceChange={setMaxDistance}
               onSearchChange={async (search, isToday) => {
@@ -235,6 +237,7 @@ export default function InteractiveMapLayout({ restaurants: initialRestaurants, 
             onRestaurantClick={(r) => setSelectedRestaurant(r)}
             userLocation={userLocation}
             maxDistance={maxDistance}
+            flyToLocation={flyToLocation}
           />
         )}
       </div>
