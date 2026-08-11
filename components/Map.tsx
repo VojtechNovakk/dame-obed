@@ -33,7 +33,7 @@ function FlyToLocation({ flyToLocation }: { flyToLocation?: { lat: number; lon: 
   const map = useMap();
   useEffect(() => {
     if (flyToLocation) {
-      map.flyTo([flyToLocation.lat, flyToLocation.lon], 15, { animate: true, duration: 1.5 });
+      map.flyTo([flyToLocation.lat, flyToLocation.lon], 17, { animate: true, duration: 1.5 });
     }
   }, [flyToLocation, map]);
   return null;
