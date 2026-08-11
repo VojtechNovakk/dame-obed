@@ -51,6 +51,7 @@ export default function TopNavigation({
   // ne automaticky při psaní — viz zásady používání Nominatim API.
   useEffect(() => {
     geocodeRequestIdRef.current++;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAddressResults([]);
     setIsGeocoding(false);
     setLastSearchedQuery(null);
