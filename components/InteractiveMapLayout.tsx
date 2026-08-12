@@ -11,6 +11,9 @@ import type { Restaurant, MenuMeal, TodayMealsMap, RatingsMap } from '@/lib/type
 import TopNavigation from "./TopNavigation";
 import RestaurantList from "./RestaurantList";
 import RestaurantReviews from "./RestaurantReviews";
+import MyLocationButton, { type LocationStatus } from "./MyLocationButton";
+
+const DENIED_HINT = "Přístup k poloze je zablokovaný. Povol ho v prohlížeči (ikona vlevo v adresním řádku → Poloha → Povolit) a zkus to znovu.";
 
 export default function InteractiveMapLayout({ restaurants: initialRestaurants, initialFavouriteIds = [], todayMealsMap = {}, ratingsMap = {}, initialRestaurantId, initialActiveTab = "map" }: { restaurants: Restaurant[], initialFavouriteIds?: number[], todayMealsMap?: TodayMealsMap, ratingsMap?: RatingsMap, initialRestaurantId?: number, initialActiveTab?: string }) {
   const [restaurants, setRestaurants] = useState<Restaurant[]>(initialRestaurants);
@@ -26,12 +29,17 @@ export default function InteractiveMapLayout({ restaurants: initialRestaurants, 
   const [maxDistance, setMaxDistance] = useState<number>(0);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [flyToLocation, setFlyToLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
 
   useEffect(() => {
     if (typeof window !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.log("Geolokace selhala: ", err),
+        (err) => {
+          console.log("Geolokace selhala: ", err);
+          // Rozlišíme zamítnuté povolení od ostatních chyb, aby to tlačítko mohlo dát najevo
+          if (err.code === err.PERMISSION_DENIED) setLocationStatus("denied");
+        },
         { enableHighAccuracy: true, timeout: 5000 }
       );
     }
@@ -49,6 +57,53 @@ export default function InteractiveMapLayout({ restaurants: initialRestaurants, 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleLocateMe = async () => {
+    // Polohu už známe – stačí na ni zaletět. Nový objekt při každém kliknutí zajistí, že se efekt spustí znovu.
+    if (userLocation) {
+      setFlyToLocation({ lat: userLocation.lat, lon: userLocation.lng });
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      showToast("Tvůj prohlížeč geolokaci nepodporuje.", "error");
+      return;
+    }
+
+    // Zamítnuté povolení je pro doménu trvalé – prohlížeč se znovu nezeptá, takže rovnou poradíme, jak ho vrátit.
+    try {
+      if ("permissions" in navigator) {
+        const permission = await navigator.permissions.query({ name: "geolocation" });
+        if (permission.state === "denied") {
+          setLocationStatus("denied");
+          showToast(DENIED_HINT, "error");
+          return;
+        }
+      }
+    } catch {
+      // Permissions API není dostupné (starší Safari) – zkusíme rovnou getCurrentPosition.
+    }
+
+    setLocationStatus("loading");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setFlyToLocation({ lat: coords.lat, lon: coords.lng });
+        setLocationStatus("idle");
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationStatus("denied");
+          showToast(DENIED_HINT, "error");
+        } else {
+          setLocationStatus("idle");
+          showToast("Polohu se nepodařilo zjistit. Zkus to prosím znovu.", "error");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(() => {
@@ -231,14 +286,24 @@ export default function InteractiveMapLayout({ restaurants: initialRestaurants, 
             todayMealsMap={todayMealsMap}
           />
         ) : (
-          <MapWrapper 
-            restaurants={filteredRestaurants} 
-            selectedRestaurant={selectedRestaurant}
-            onRestaurantClick={(r) => setSelectedRestaurant(r)}
-            userLocation={userLocation}
-            maxDistance={maxDistance}
-            flyToLocation={flyToLocation}
-          />
+          <>
+            <MapWrapper
+              restaurants={filteredRestaurants}
+              selectedRestaurant={selectedRestaurant}
+              onRestaurantClick={(r) => setSelectedRestaurant(r)}
+              userLocation={userLocation}
+              maxDistance={maxDistance}
+              flyToLocation={flyToLocation}
+            />
+            {/* Nad Leaflet atribucí, z-index pod detail panelem (z-400), aby mu nikdy nepřekážel */}
+            <div className="absolute bottom-8 right-4 z-[350]">
+              <MyLocationButton
+                status={locationStatus}
+                hasLocation={!!userLocation}
+                onClick={handleLocateMe}
+              />
+            </div>
+          </>
         )}
       </div>
 
