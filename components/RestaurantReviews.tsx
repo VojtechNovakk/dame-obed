@@ -3,11 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { Star, Loader2, MessageSquare, Edit2, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { addReview, getReviewsAction, deleteReview } from "@/lib/actions";
+import { getLoginUrl } from "@/lib/utils";
 import type { Review } from "@/lib/types";
 
 export default function RestaurantReviews({ restaurantId }: { restaurantId: number }) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [stars, setStars] = useState(0);
@@ -138,7 +141,7 @@ export default function RestaurantReviews({ restaurantId }: { restaurantId: numb
         </div>
       )}
 
-      {session ? (
+      {session?.user?.id ? (
         (!myReview || isEditing) && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3 pt-4 border-t border-white/10">
             <div className="flex justify-between items-center">
@@ -193,9 +196,13 @@ export default function RestaurantReviews({ restaurantId }: { restaurantId: numb
       ) : (
         <div className="pt-4 border-t border-white/10 text-center">
           <p className="text-sm text-neutral-400">Chcete ohodnotit restauraci?</p>
-          <a href="/login" className="inline-block mt-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300">
+          <button
+            type="button"
+            onClick={() => router.push(getLoginUrl())}
+            className="mt-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+          >
             Přihlaste se
-          </a>
+          </button>
         </div>
       )}
     </div>

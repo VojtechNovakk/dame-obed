@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { User, Map, Heart, List, Search, LogOut, Loader2, X, MapPin } from "lucide-react";
 import type { Restaurant } from '@/lib/types';
 import { searchAddresses, type AddressResult } from "@/lib/geocode";
+import { getLoginUrl } from "@/lib/utils";
 
 export default function TopNavigation({
   activeTab,
@@ -27,7 +28,10 @@ export default function TopNavigation({
   onSearchChange?: (search: string, isToday: boolean) => void;
 }) {
   const { data: session } = useSession();
-  
+  // Za přihlášeného bereme jen uživatele s id. Samotný objekt session nestačí -
+  // Auth.js ho umí vrátit i pro zneplatněný token, a to bez id a jména.
+  const isLoggedIn = Boolean(session?.user?.id);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentSearch = searchParams.get("search") || "";
@@ -129,8 +133,8 @@ export default function TopNavigation({
   }, [searchTerm, isTodayOnly, currentSearch, currentToday, onSearchChange]);
 
   const handleTabClick = (tab: string) => {
-    if (tab === "favourites" && !session) {
-      router.push('/login');
+    if (tab === "favourites" && !isLoggedIn) {
+      router.push(getLoginUrl());
       return;
     }
     
@@ -361,15 +365,15 @@ export default function TopNavigation({
       <div ref={profileMenuRef} className="flex items-center gap-3 md:flex-1 justify-end relative pt-1 order-2 md:order-3">
 
         <button 
-          onClick={() => session ? setIsProfileMenuOpen(!isProfileMenuOpen) : router.push('/login')}
-          title={session ? `Profil (${session.user?.name})` : "Přihlásit se"}
+          onClick={() => isLoggedIn ? setIsProfileMenuOpen(!isProfileMenuOpen) : router.push(getLoginUrl())}
+          title={isLoggedIn ? `Profil (${session?.user?.name})` : "Přihlásit se"}
           className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-neutral-800/60 backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-xl z-10 ${
-            session 
-              ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10' 
+            isLoggedIn
+              ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10'
               : 'border-white/10 text-neutral-400 hover:text-white hover:bg-neutral-700/50'
           }`}
         >
-          {session && session.user?.name ? (
+          {isLoggedIn && session?.user?.name ? (
             <span className="font-bold text-sm uppercase">{session.user.name.charAt(0)}</span>
           ) : (
             <User size={18} className="sm:w-5 sm:h-5" />
@@ -377,11 +381,11 @@ export default function TopNavigation({
         </button>
 
         {/* Rozbalovací menu pro profil */}
-        {session && isProfileMenuOpen && (
+        {isLoggedIn && isProfileMenuOpen && (
           <div className="absolute top-[110%] right-0 mt-1 w-56 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="px-4 py-3 border-b border-white/10 bg-white/5">
-              <p className="text-sm font-semibold text-white truncate">{session.user?.name || "Uživatel"}</p>
-              <p className="text-xs text-neutral-400 truncate">{session.user?.email || ""}</p>
+              <p className="text-sm font-semibold text-white truncate">{session?.user?.name || "Uživatel"}</p>
+              <p className="text-xs text-neutral-400 truncate">{session?.user?.email || ""}</p>
             </div>
             <button 
               onClick={() => {
