@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import MapWrapper from "./MapWrapper";
 import { X, Clock, MapPin, ExternalLink, Heart, Star } from "lucide-react";
 import { getMenu, addFavourite, removeFavourite, searchRestaurants, searchTodayRestaurants, getTodayRestaurants, getAllRestaurants } from "@/lib/actions";
-import { slugify, getDistanceInKm } from "@/lib/utils";
+import { slugify, getDistanceInKm, getLoginUrl } from "@/lib/utils";
 
 import type { Restaurant, MenuMeal, TodayMealsMap, RatingsMap } from '@/lib/types';
 import TopNavigation from "./TopNavigation";
@@ -23,6 +24,7 @@ export default function InteractiveMapLayout({ restaurants: initialRestaurants, 
     setRestaurants(initialRestaurants);
   }, [initialRestaurants]);
   const { data: session } = useSession();
+  const router = useRouter();
   const [favouriteIds, setFavouriteIds] = useState<number[]>(initialFavouriteIds);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
 
@@ -196,11 +198,14 @@ export default function InteractiveMapLayout({ restaurants: initialRestaurants, 
   const uniqueDates = Array.from(new Set(allMeals.map((meal) => new Date(meal.valid_for_date).toDateString())));
 
   const handleToggleFavourite = async () => {
-    if (!session || !session.user?.id || !selectedRestaurant) {
-      alert("Pro přidání do oblíbených se musíte přihlásit.");
+    if (!selectedRestaurant) return;
+
+    // Nepřihlášeného uživatele pošleme na login a po přihlášení ho vrátíme zpět.
+    if (!session || !session.user?.id) {
+      router.push(getLoginUrl());
       return;
     }
-    
+
     const rId = selectedRestaurant.restaurant_id;
     const isFav = favouriteIds.includes(rId);
 

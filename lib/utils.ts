@@ -11,6 +11,14 @@ export function slugify(text: string) {
     .replace(/-+$/, ""); // ořízne pomlčky z konce
 }
 
+// Sestaví odkaz na přihlášení tak, aby se uživatel po přihlášení vrátil tam,
+// odkud odešel (viz zpracování callbackUrl v components/auth/LoginForm.tsx).
+export function getLoginUrl() {
+  if (typeof window === "undefined") return "/login";
+  const returnTo = window.location.pathname + window.location.search;
+  return `/login?callbackUrl=${encodeURIComponent(returnTo)}`;
+}
+
 export function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the earth in km
   const dLat = (lat2 - lat1) * Math.PI / 180;

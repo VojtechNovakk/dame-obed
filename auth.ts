@@ -78,10 +78,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const result = await query('SELECT email FROM users WHERE user_id = $1', [userId]);
           
           if (result.rows.length === 0 || (token.email && result.rows[0].email !== token.email)) {
-            // Uživatel neexistuje nebo nesedí e-mail -> zneplatníme session
-            delete token.id;
-            delete token.sub;
-            return {}; 
+            // Uživatel neexistuje nebo nesedí e-mail -> zneplatníme session.
+            // Musí to být null, ne prázdný objekt: prázdný token Auth.js bere jako
+            // platný, znovu ho podepíše a klientovi pošle session bez id a jména.
+            // Na null naopak session cookie smaže.
+            return null;
           }
         } catch (error) {
           console.error("Chyba při validaci JWT:", error);
